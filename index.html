@@ -1,95 +1,126 @@
-// 1. Force-register the service worker immediately
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./coi-serviceworker.js').then(() => {
-        console.log("Security Layer Active");
-    });
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Maker Pro</title>
+    <!-- 1. MUST LOAD SERVICE WORKER FIRST -->
+    <script src="coi-serviceworker.js"></script>
+    <!-- 2. FULL CORRECT PATHS TO LIBS (Fixes MIME Error) -->
+    <script src="https://cdnjs.cloudflare.com" integrity="sha512-Yp8N9f8L8m7j9i0l2B4vH8s6D5q4v1z9=" crossorigin="anonymous"></script>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
+        .card { background: #1e1e1e; padding: 30px; border-radius: 15px; display: inline-block; width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input, select, button { width: 90%; padding: 12px; margin: 10px; border-radius: 5px; border: none; font-size: 14px; }
+        button { background: #ff4b2b; color: white; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #555; }
+        #status { color: #888; margin-top: 15px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
 
-let ffmpegInstance = null;
+<div class="card">
+    <h1>🎬 Video Maker</h1>
+    <select id="mode" onchange="toggleInputs()">
+        <option value="wikimedia">Wikimedia Scraper</option>
+        <option value="local">Local Files (Upload)</option>
+    </select>
+    <div id="wiki-settings">
+        <input type="text" id="topic" placeholder="Topic (e.g. Vintage Cars)">
+        <input type="number" id="limit" value="3" min="1" max="10">
+    </div>
+    <div id="local-settings" style="display:none;">
+        <input type="file" id="localFiles" accept="image/*" multiple>
+    </div>
+    <p>Music (Optional):</p>
+    <input type="file" id="bgMusic" accept="audio/*">
+    <button id="renderBtn" onclick="processVideo()">Generate & Download</button>
+    <div id="status">Ready</div>
+</div>
 
-// 2. Function to inject the script only when needed
-function loadFFmpegScript() {
-    return new Promise((resolve, reject) => {
-        if (window.FFmpeg) return resolve();
-        const script = document.createElement('script');
-        script.src = "https://cdnjs.cloudflare.com";
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-}
+<script>
+    let ffmpegInstance = null;
 
-async function processVideo() {
-    const status = document.getElementById('status');
-    const btn = document.getElementById('renderBtn');
-    btn.disabled = true;
-
-    try {
-        status.innerText = "Connecting to CDN...";
-        await loadFFmpegScript(); // Dynamically pull the library
-
-        if (!ffmpegInstance) {
-            status.innerText = "Loading FFmpeg Engine...";
-            ffmpegInstance = FFmpeg.createFFmpeg({ 
-                log: true,
-                corePath: 'https://cdnjs.cloudflare.com'
-            });
-            await ffmpegInstance.load();
-        }
-
-        const ffmpeg = ffmpegInstance;
+    function toggleInputs() {
         const mode = document.getElementById('mode').value;
-        let images = [];
-
-        if (mode === 'wikimedia') {
-            status.innerText = "Searching Wikimedia...";
-            images = await fetchWikiImages(document.getElementById('topic').value, document.getElementById('limit').value);
-        } else {
-            const files = document.getElementById('localFiles').files;
-            for (let f of files) images.push(URL.createObjectURL(f));
-        }
-
-        if (images.length === 0) throw new Error("No images found.");
-
-        status.innerText = "Writing Files...";
-        for (let i = 0; i < images.length; i++) {
-            const data = await FFmpeg.fetchFile(images[i]);
-            ffmpeg.FS('writeFile', `img${i}.jpg`, data);
-        }
-
-        const musicInput = document.getElementById('bgMusic').files[0];
-        if (musicInput) {
-            ffmpeg.FS('writeFile', 'audio.mp3', await FFmpeg.fetchFile(musicInput));
-        }
-
-        status.innerText = "Rendering (Wait)...";
-        await ffmpeg.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'out.mp4');
-
-        let finalFile = 'out.mp4';
-        if (musicInput) {
-            status.innerText = "Mixing Audio...";
-            await ffmpeg.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
-            finalFile = 'final.mp4';
-        }
-
-        const data = ffmpeg.FS('readFile', finalFile);
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-        a.download = 'video.mp4';
-        a.click();
-        status.innerText = "Success!";
-    } catch (e) {
-        status.innerText = "Error: " + e.message;
-        console.error(e);
-    } finally {
-        btn.disabled = false;
+        document.getElementById('wiki-settings').style.display = mode === 'wikimedia' ? 'block' : 'none';
+        document.getElementById('local-settings').style.display = mode === 'local' ? 'block' : 'none';
     }
-}
 
-async function fetchWikiImages(topic, limit) {
-    const url = `https://commons.wikimedia.org{encodeURIComponent(topic)}&gsrnamespace=6&gsrlimit=${limit}&prop=imageinfo&iiprop=url&format=json&origin=*`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!data.query) return [];
-    return Object.values(data.query.pages).map(p => p.imageinfo[0].url).filter(url => url.match(/\.(jpg|jpeg|png)$/i));
-}
+    async function processVideo() {
+        const status = document.getElementById('status');
+        const btn = document.getElementById('renderBtn');
+        btn.disabled = true;
+
+        try {
+            if (typeof FFmpeg === 'undefined') {
+                throw new Error("Library failed to load. Check your internet or ad-blocker.");
+            }
+
+            if (!ffmpegInstance) {
+                status.innerText = "Starting Engine...";
+                ffmpegInstance = FFmpeg.createFFmpeg({ 
+                    log: true,
+                    // Full path to the core engine
+                    corePath: 'https://cdnjs.cloudflare.com'
+                });
+                await ffmpegInstance.load();
+            }
+
+            const ffmpeg = ffmpegInstance;
+            const mode = document.getElementById('mode').value;
+            let images = [];
+
+            if (mode === 'wikimedia') {
+                status.innerText = "Scraping Images...";
+                images = await fetchWikiImages(document.getElementById('topic').value, document.getElementById('limit').value);
+            } else {
+                const files = document.getElementById('localFiles').files;
+                for (let f of files) images.push(URL.createObjectURL(f));
+            }
+
+            if (images.length === 0) throw new Error("No images found.");
+
+            for (let i = 0; i < images.length; i++) {
+                const data = await FFmpeg.fetchFile(images[i]);
+                ffmpeg.FS('writeFile', `img${i}.jpg`, data);
+            }
+
+            const musicInput = document.getElementById('bgMusic').files[0];
+            if (musicInput) {
+                ffmpeg.FS('writeFile', 'audio.mp3', await FFmpeg.fetchFile(musicInput));
+            }
+
+            status.innerText = "Rendering (Wait)...";
+            await ffmpeg.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'out.mp4');
+
+            let finalFile = 'out.mp4';
+            if (musicInput) {
+                status.innerText = "Adding Audio...";
+                await ffmpeg.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
+                finalFile = 'final.mp4';
+            }
+
+            const data = ffmpeg.FS('readFile', finalFile);
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+            a.download = `video_${Date.now()}.mp4`;
+            a.click();
+            status.innerText = "Success!";
+        } catch (e) {
+            status.innerText = "Error: " + e.message;
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function fetchWikiImages(topic, limit) {
+        const url = `https://commons.wikimedia.org{encodeURIComponent(topic)}&gsrnamespace=6&gsrlimit=${limit}&prop=imageinfo&iiprop=url&format=json&origin=*`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.query) return [];
+        return Object.values(data.query.pages).map(p => p.imageinfo[0].url).filter(u => u.match(/\.(jpg|jpeg|png)$/i));
+    }
+</script>
+</body>
+</html>
