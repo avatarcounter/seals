@@ -10,7 +10,7 @@ if (typeof window === "undefined") {
                 h.set("Cross-Origin-Embedder-Policy", "require-corp");
                 h.set("Cross-Origin-Opener-Policy", "same-origin");
                 return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
-            }).catch(err => console.error(err))
+            })
         );
     });
 }
