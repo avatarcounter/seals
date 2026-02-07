@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>Top List Video Maker - Fixed</title>
-    <!-- Use the versioned library to ensure stability -->
+    <!-- Stable FFmpeg version -->
     <script src="https://unpkg.com"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
-        .card { background: #1e1e1e; padding: 30px; border-radius: 15px; display: inline-block; width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        input, select, button { width: 90%; padding: 10px; margin: 10px; border-radius: 5px; border: none; }
+        .card { background: #1e1e1e; padding: 30px; border-radius: 15px; display: inline-block; width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input, select, button { width: 90%; padding: 12px; margin: 10px; border-radius: 5px; border: none; font-size: 14px; }
         button { background: #ff4b2b; color: white; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #555; }
         #status { color: #888; margin-top: 15px; font-size: 0.9em; }
     </style>
 </head>
@@ -18,114 +19,121 @@
 <div class="card">
     <h1>🎬 Video Maker</h1>
     
-    <select id="mode" onchange="document.getElementById('wiki-input').style.display = (this.value=='local'?'none':'block')">
-        <option value="wikimedia">Wikimedia Mode</option>
-        <option value="local">Local File Mode</option>
+    <select id="mode" onchange="toggleInputs()">
+        <option value="wikimedia">Wikimedia Scraper</option>
+        <option value="local">Local Files (Upload)</option>
     </select>
 
-    <div id="wiki-input">
-        <input type="text" id="topic" placeholder="Topic (e.g. Cats)">
-        <input type="number" id="limit" value="3">
+    <div id="wiki-settings">
+        <input type="text" id="topic" placeholder="Topic (e.g. Red Cars)">
+        <input type="number" id="limit" value="3" min="1" max="10">
     </div>
 
-    <p>Background Music (Optional):</p>
-    <input type="file" id="musicFile" accept="audio/*">
+    <div id="local-settings" style="display:none;">
+        <input type="file" id="localFiles" accept="image/*" multiple>
+    </div>
 
-    <button id="btn" onclick="startRender()">Generate & Download</button>
+    <p>Background Music:</p>
+    <input type="file" id="bgMusic" accept="audio/*">
+
+    <button id="renderBtn" onclick="processVideo()">Generate & Download</button>
     <div id="status">Ready</div>
 </div>
 
 <script>
-    // 1. Correct Initialization to avoid "Lexical Declaration" error
-    const { createFFmpeg, fetchFile } = FFmpeg;
+    // FIX: Define variables as null and assign them inside the async function
     let ffmpegInstance = null;
 
-    async function getFFmpeg() {
-        if (!ffmpegInstance) {
-            ffmpegInstance = createFFmpeg({ log: true });
-            await ffmpegInstance.load();
-        }
-        return ffmpegInstance;
+    function toggleInputs() {
+        const mode = document.getElementById('mode').value;
+        document.getElementById('wiki-settings').style.display = mode === 'wikimedia' ? 'block' : 'none';
+        document.getElementById('local-settings').style.display = mode === 'local' ? 'block' : 'none';
     }
 
-    async function startRender() {
+    async function processVideo() {
         const status = document.getElementById('status');
-        const btn = document.getElementById('btn');
+        const btn = document.getElementById('renderBtn');
         btn.disabled = true;
 
         try {
-            const ffmpeg = await getFFmpeg();
+            // FIX: Initialize FFmpeg only when the button is clicked
+            if (!ffmpegInstance) {
+                const { createFFmpeg, fetchFile } = FFmpeg;
+                ffmpegInstance = createFFmpeg({ log: true });
+                status.innerText = "Loading FFmpeg Engine...";
+                await ffmpegInstance.load();
+            }
+
+            const ffmpeg = ffmpegInstance;
             const mode = document.getElementById('mode').value;
-            const topic = document.getElementById('topic').value;
-            const limit = document.getElementById('limit').value;
+            let images = [];
 
-            status.innerText = "Step 1: Gathering Images...";
-            let imageUrls = [];
-
-            if (mode === "wikimedia") {
-                imageUrls = await fetchWiki(topic, limit);
+            if (mode === 'wikimedia') {
+                status.innerText = "Scraping Wikimedia...";
+                const topic = document.getElementById('topic').value;
+                const limit = document.getElementById('limit').value;
+                images = await fetchWikiImages(topic, limit);
             } else {
-                status.innerText = "Please use a Python server for 'Local Folder' access, or upload files here.";
-                return;
+                const files = document.getElementById('localFiles').files;
+                for (let f of files) images.push(URL.createObjectURL(f));
             }
 
-            // Write images to FFmpeg virtual memory
-            status.innerText = "Step 2: Processing Frames...";
-            for (let i = 0; i < imageUrls.length; i++) {
-                ffmpeg.FS('writeFile', `img${i}.jpg`, await fetchFile(imageUrls[i]));
+            if (images.length === 0) throw new Error("No images found.");
+
+            status.innerText = "Processing Frames...";
+            for (let i = 0; i < images.length; i++) {
+                // Use FFmpeg.fetchFile (global helper)
+                ffmpeg.FS('writeFile', `img${i}.jpg`, await FFmpeg.fetchFile(images[i]));
             }
 
-            // Handle Music
-            const musicInput = document.getElementById('musicFile').files[0];
-            if (musicInput) {
-                ffmpeg.FS('writeFile', 'audio.mp3', await fetchFile(musicInput));
+            const musicFile = document.getElementById('bgMusic').files[0];
+            if (musicFile) {
+                ffmpeg.FS('writeFile', 'audio.mp3', await FFmpeg.fetchFile(musicFile));
             }
 
-            status.innerText = "Step 3: Rendering Video (Slow)...";
-            // Simple command to loop images into a 3-second slideshow
+            status.innerText = "Compiling Video (Please Wait)...";
+            // Simple 3-second-per-slide command
             await ffmpeg.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720', 'out.mp4');
 
-            let finalFile = 'out.mp4';
-            if (musicInput) {
-                status.innerText = "Step 4: Adding Audio...";
+            let finalOut = 'out.mp4';
+            if (musicFile) {
+                status.innerText = "Adding Audio...";
                 await ffmpeg.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
-                finalFile = 'final.mp4';
+                finalOut = 'final.mp4';
             }
 
             // TRIGGER DOWNLOAD
-            status.innerText = "Downloading...";
-            const data = ffmpeg.FS('readFile', finalFile);
+            status.innerText = "Starting Download...";
+            const data = ffmpeg.FS('readFile', finalOut);
             const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${topic}_video.mp4`;
+            a.download = `Top_Video.mp4`;
             a.click();
-
-            status.innerText = "Done!";
-        } catch (err) {
-            console.error(err);
-            status.innerText = "Error: " + err.message;
+            
+            status.innerText = "Success! Saved to Downloads.";
+        } catch (e) {
+            status.innerText = "Error: " + e.message;
+            console.error(e);
         } finally {
             btn.disabled = false;
         }
     }
 
-    async function fetchWiki(topic, limit) {
-        const searchUrl = `https://commons.wikimedia.org{topic}&srlimit=${limit}&format=json&origin=*`;
-        const res = await fetch(searchUrl);
+    async function fetchWikiImages(topic, limit) {
+        const endpoint = `https://commons.wikimedia.org{topic}&srlimit=${limit}&origin=*`;
+        const res = await fetch(endpoint);
         const data = await res.json();
         const results = data.query.search;
-
-        const urls = [];
+        
+        let urls = [];
         for (let item of results) {
-            const infoUrl = `https://commons.wikimedia.org{encodeURIComponent(item.title)}&iiprop=url&format=json&origin=*`;
+            const infoUrl = `https://commons.wikimedia.org{encodeURIComponent(item.title)}&iiprop=url&origin=*`;
             const infoRes = await fetch(infoUrl);
             const infoData = await infoRes.json();
             const pages = infoData.query.pages;
             const pageId = Object.keys(pages)[0];
             const imgUrl = pages[pageId].imageinfo[0].url;
-            
-            // Only push if it's a standard image format
             if (imgUrl.match(/\.(jpg|jpeg|png)$/i)) urls.push(imgUrl);
         }
         return urls;
