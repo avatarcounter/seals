@@ -1,126 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Top List Video Maker</title>
-    <!-- 1. Fixes Security Headers for GitHub Pages -->
-    <script src="coi-serviceworker.js"></script>
-    <!-- 2. Fixed CDN Path (Prevents MIME Type Error) -->
-    <script src="https://unpkg.com"></script>
-    <style>
-        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
-        .card { background: #1e1e1e; padding: 30px; border-radius: 15px; display: inline-block; width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        input, select, button { width: 90%; padding: 12px; margin: 10px; border-radius: 5px; border: none; font-size: 14px; }
-        button { background: #ff4b2b; color: white; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #555; }
-        #status { color: #888; margin-top: 15px; font-size: 0.9em; }
-    </style>
-</head>
-<body>
-
-<div class="card">
-    <h1>🎬 Video Maker</h1>
-    <select id="mode" onchange="toggleInputs()">
-        <option value="wikimedia">Wikimedia Scraper</option>
-        <option value="local">Local Files (Upload)</option>
-    </select>
-    <div id="wiki-settings">
-        <input type="text" id="topic" placeholder="Topic (e.g. Supercars)">
-        <input type="number" id="limit" value="3" min="1" max="10">
-    </div>
-    <div id="local-settings" style="display:none;">
-        <input type="file" id="localFiles" accept="image/*" multiple>
-    </div>
-    <p>Music (Optional):</p>
-    <input type="file" id="bgMusic" accept="audio/*">
-    <button id="renderBtn" onclick="processVideo()">Generate & Download</button>
-    <div id="status">Ready</div>
-</div>
-
-<script>
-    let ffmpegInstance = null;
-
-    function toggleInputs() {
-        const mode = document.getElementById('mode').value;
-        document.getElementById('wiki-settings').style.display = mode === 'wikimedia' ? 'block' : 'none';
-        document.getElementById('local-settings').style.display = mode === 'local' ? 'block' : 'none';
-    }
-
-    async function processVideo() {
-        const status = document.getElementById('status');
-        const btn = document.getElementById('renderBtn');
-        btn.disabled = true;
-
-        try {
-            if (!ffmpegInstance) {
-                status.innerText = "Loading FFmpeg Engine...";
-                // Use the global FFmpeg object created by the script tag
-                ffmpegInstance = FFmpeg.createFFmpeg({ 
-                    log: true,
-                    corePath: 'https://unpkg.com'
-                });
-                await ffmpegInstance.load();
-            }
-
-            const ffmpeg = ffmpegInstance;
-            const mode = document.getElementById('mode').value;
-            let images = [];
-
-            if (mode === 'wikimedia') {
-                status.innerText = "Searching Wikimedia...";
-                images = await fetchWikiImages(document.getElementById('topic').value, document.getElementById('limit').value);
-            } else {
-                const files = document.getElementById('localFiles').files;
-                for (let f of files) images.push(URL.createObjectURL(f));
-            }
-
-            if (images.length === 0) throw new Error("No images found.");
-
-            status.innerText = "Preparing Files...";
-            for (let i = 0; i < images.length; i++) {
-                const data = await FFmpeg.fetchFile(images[i]);
-                ffmpeg.FS('writeFile', `img${i}.jpg`, data);
-            }
-
-            const musicInput = document.getElementById('bgMusic').files[0];
-            if (musicInput) {
-                ffmpeg.FS('writeFile', 'audio.mp3', await FFmpeg.fetchFile(musicInput));
-            }
-
-            status.innerText = "Rendering (Wait)...";
-            // 3 seconds per slide, 720p resolution
-            await ffmpeg.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'out.mp4');
-
-            let finalFile = 'out.mp4';
-            if (musicInput) {
-                status.innerText = "Adding Music...";
-                await ffmpeg.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
-                finalFile = 'final.mp4';
-            }
-
-            const data = ffmpeg.FS('readFile', finalFile);
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-            a.download = 'my-video.mp4';
-            a.click();
-            status.innerText = "Success!";
-        } catch (e) {
-            status.innerText = "Error: " + e.message;
-            console.error(e);
-        } finally {
-            btn.disabled = false;
-        }
-    }
-
-    async function fetchWikiImages(topic, limit) {
-        const url = `https://commons.wikimedia.org{encodeURIComponent(topic)}&gsrnamespace=6&gsrlimit=${limit}&prop=imageinfo&iiprop=url&format=json&origin=*`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (!data.query) return [];
-        return Object.values(data.query.pages)
-            .map(p => p.imageinfo[0].url)
-            .filter(url => url.match(/\.(jpg|jpeg|png)$/i));
-    }
-</script>
-</body>
-</html>
+if (typeof window === "undefined") {
+    self.addEventListener("install", () => self.skipWaiting());
+    self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+    self.addEventListener("fetch", (e) => {
+        if (e.request.cache === "only-if-cached" && e.request.mode !== "same-origin") return;
+        e.respondWith(
+            fetch(e.request).then((res) => {
+                if (res.status === 0) return res;
+                const h = new Headers(res.headers);
+                h.set("Cross-Origin-Embedder-Policy", "require-corp");
+                h.set("Cross-Origin-Opener-Policy", "same-origin");
+                return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
+            })
+        );
+    });
+}
