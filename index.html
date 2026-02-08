@@ -2,59 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Maker Pro</title>
-    <!-- 1. Security Layer (Must be first) -->
     <script src="coi-serviceworker.js"></script>
-    <!-- 2. Video Engine (Must have crossorigin="anonymous") -->
     <script src="https://cdn.jsdelivr.net" crossorigin="anonymous"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
         .card { background: #1e1e1e; padding: 30px; border-radius: 15px; display: inline-block; width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         input, select, button { width: 90%; padding: 12px; margin: 10px; border-radius: 5px; border: none; font-size: 14px; }
-        button { background: #ff4b2b; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #ff6a50; }
+        button { background: #ff4b2b; color: white; font-weight: bold; cursor: pointer; }
         button:disabled { background: #555; }
-        #status { color: #888; margin-top: 15px; font-size: 0.9em; font-style: italic; }
-        #iso-badge { font-size: 10px; margin-bottom: 10px; padding: 4px; border-radius: 4px; display: inline-block; background: #e74c3c; color: #fff; }
+        #status { color: #888; margin-top: 15px; font-size: 0.9em; }
+        #iso-badge { font-size: 10px; margin-bottom: 10px; padding: 4px; border-radius: 4px; display: inline-block; background: #e74c3c; }
         .secure { background: #2ecc71 !important; }
     </style>
 </head>
 <body>
-
-<div class="card">
-    <div id="iso-badge">Security: OFF (Syncing...)</div>
-    <h1>🎬 Video Maker</h1>
-    <select id="mode" onchange="toggleInputs()">
-        <option value="wikimedia">Wikimedia Scraper</option>
-        <option value="local">Local Upload</option>
-    </select>
-    <div id="wiki-settings">
-        <input type="text" id="topic" placeholder="Topic (e.g. Vintage Cars)">
-        <input type="number" id="limit" value="3" min="1" max="10">
+    <div class="card">
+        <div id="iso-badge">Security: OFF (Please Refresh)</div>
+        <h1>🎬 Video Maker</h1>
+        <select id="mode" onchange="toggleInputs()">
+            <option value="wikimedia">Wikimedia Scraper</option>
+            <option value="local">Local Upload</option>
+        </select>
+        <div id="wiki-settings">
+            <input type="text" id="topic" placeholder="Topic (e.g. Space)">
+            <input type="number" id="limit" value="3" min="1" max="10">
+        </div>
+        <div id="local-settings" style="display:none;">
+            <input type="file" id="localFiles" accept="image/*" multiple>
+        </div>
+        <p>Audio (MP3):</p>
+        <input type="file" id="bgMusic" accept="audio/*">
+        <button id="renderBtn" onclick="processVideo()">Generate</button>
+        <div id="status">Ready</div>
     </div>
-    <div id="local-settings" style="display:none;">
-        <input type="file" id="localFiles" accept="image/*" multiple>
-    </div>
-    <p>Music (Upload MP3):</p>
-    <input type="file" id="bgMusic" accept="audio/*">
-    <button id="renderBtn" onclick="processVideo()">Generate & Download</button>
-    <div id="status">Ready</div>
-</div>
 
 <script>
-    // --- 1. FORCE SECURITY ACTIVATION ---
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./coi-serviceworker.js').then(reg => {
-            if (!window.crossOriginIsolated && reg.active) {
-                location.reload();
-            }
-        });
-    }
-
     if (window.crossOriginIsolated) {
         const badge = document.getElementById('iso-badge');
-        badge.innerText = "Security: ACTIVE (Ready)";
+        badge.innerText = "Security: ACTIVE";
         badge.className = "secure";
     }
 
@@ -69,79 +55,58 @@
     async function processVideo() {
         const status = document.getElementById('status');
         const btn = document.getElementById('renderBtn');
-        
-        if (!window.crossOriginIsolated) {
-            status.innerText = "Error: Security layer not active. Please refresh.";
-            return;
-        }
-
+        if (!window.crossOriginIsolated) return alert("Please refresh the page to activate security layer.");
         btn.disabled = true;
 
         try {
-            if (typeof FFmpeg === 'undefined') throw new Error("Library not loaded. Check internet.");
-            
             const { createFFmpeg, fetchFile } = FFmpeg;
-
             if (!ffmpegInstance) {
-                status.innerText = "Starting Engine...";
+                status.innerText = "Loading Engine...";
                 ffmpegInstance = createFFmpeg({ 
-                    log: true,
-                    corePath: 'https://cdn.jsdelivr.net'
+                    log: true, 
+                    corePath: 'https://cdn.jsdelivr.net' 
                 });
                 await ffmpegInstance.load();
             }
 
             const mode = document.getElementById('mode').value;
-            let imageUrls = [];
+            let images = [];
 
             if (mode === 'wikimedia') {
-                status.innerText = "Finding Images...";
-                imageUrls = await fetchWikiImages(document.getElementById('topic').value, document.getElementById('limit').value);
+                status.innerText = "Scraping...";
+                images = await fetchWikiImages(document.getElementById('topic').value, document.getElementById('limit').value);
             } else {
                 const files = document.getElementById('localFiles').files;
-                for (let f of files) imageUrls.push(URL.createObjectURL(f));
+                for (let f of files) images.push(URL.createObjectURL(f));
             }
 
-            if (imageUrls.length === 0) throw new Error("No images found.");
-
-            status.innerText = "Preparing Files...";
-            for (let i = 0; i < imageUrls.length; i++) {
-                const data = await fetchFile(imageUrls[i]);
-                ffmpegInstance.FS('writeFile', `img${i}.jpg`, data);
+            for (let i = 0; i < images.length; i++) {
+                ffmpegInstance.FS('writeFile', `img${i}.jpg`, await fetchFile(images[i]));
             }
 
-            const musicInput = document.getElementById('bgMusic').files;
-            if (musicInput.length > 0) {
-                ffmpegInstance.FS('writeFile', 'audio.mp3', await fetchFile(musicInput[0]));
+            const music = document.getElementById('bgMusic').files;
+            if (music.length > 0) {
+                ffmpegInstance.FS('writeFile', 'audio.mp3', await fetchFile(music[0]));
             }
 
-            status.innerText = "Rendering Video...";
-            await ffmpegInstance.run(
-                '-framerate', '1/3', 
-                '-i', 'img%d.jpg', 
-                '-c:v', 'libx264', 
-                '-pix_fmt', 'yuv420p', 
-                '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 
-                'temp.mp4'
-            );
+            status.innerText = "Rendering...";
+            await ffmpegInstance.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'out.mp4');
 
-            let finalFile = 'temp.mp4';
-            if (musicInput.length > 0) {
-                status.innerText = "Mixing Audio...";
-                await ffmpegInstance.run('-i', 'temp.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
-                finalFile = 'final.mp4';
+            let final = 'out.mp4';
+            if (music.length > 0) {
+                status.innerText = "Merging Audio...";
+                await ffmpegInstance.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
+                final = 'final.mp4';
             }
 
-            status.innerText = "Exporting...";
-            const data = ffmpegInstance.FS('readFile', finalFile);
+            const data = ffmpegInstance.FS('readFile', final);
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-            a.download = `video_${Date.now()}.mp4`;
+            a.download = 'video.mp4';
             a.click();
-            status.innerText = "Success! Saved to Downloads.";
+            status.innerText = "Done!";
         } catch (e) {
             status.innerText = "Error: " + e.message;
-            console.error(e);
         } finally {
             btn.disabled = false;
         }
@@ -152,10 +117,7 @@
         const res = await fetch(url);
         const data = await res.json();
         if (!data.query) return [];
-        return Object.values(data.query.pages)
-            .filter(p => p.imageinfo && p.imageinfo.length > 0)
-            .map(p => p.imageinfo[0].url)
-            .filter(u => u.match(/\.(jpg|jpeg|png)$/i));
+        return Object.values(data.query.pages).map(p => p.imageinfo[0].url);
     }
 </script>
 </body>
