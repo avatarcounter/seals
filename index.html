@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Maker Pro</title>
-    <!-- 1. The Security Layer (Must be first) -->
+    <!-- 1. Security Layer (Must be first) -->
     <script src="coi-serviceworker.js"></script>
-    <!-- 2. The Video Engine (Must have crossorigin="anonymous") -->
+    <!-- 2. Video Engine (Must have crossorigin="anonymous") -->
     <script src="https://cdn.jsdelivr.net" crossorigin="anonymous"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
@@ -30,7 +30,7 @@
         <option value="local">Local Upload</option>
     </select>
     <div id="wiki-settings">
-        <input type="text" id="topic" placeholder="Topic (e.g. Supercars)">
+        <input type="text" id="topic" placeholder="Topic (e.g. Vintage Cars)">
         <input type="number" id="limit" value="3" min="1" max="10">
     </div>
     <div id="local-settings" style="display:none;">
@@ -46,14 +46,12 @@
     // --- 1. FORCE SECURITY ACTIVATION ---
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./coi-serviceworker.js').then(reg => {
-            // If the badge is still red but the worker is ready, refresh once
             if (!window.crossOriginIsolated && reg.active) {
                 location.reload();
             }
         });
     }
 
-    // Update badge if isolated
     if (window.crossOriginIsolated) {
         const badge = document.getElementById('iso-badge');
         badge.innerText = "Security: ACTIVE (Ready)";
@@ -80,6 +78,8 @@
         btn.disabled = true;
 
         try {
+            if (typeof FFmpeg === 'undefined') throw new Error("Library not loaded. Check internet.");
+            
             const { createFFmpeg, fetchFile } = FFmpeg;
 
             if (!ffmpegInstance) {
@@ -104,7 +104,7 @@
 
             if (imageUrls.length === 0) throw new Error("No images found.");
 
-            status.innerText = "Preparing Virtual Files...";
+            status.innerText = "Preparing Files...";
             for (let i = 0; i < imageUrls.length; i++) {
                 const data = await fetchFile(imageUrls[i]);
                 ffmpegInstance.FS('writeFile', `img${i}.jpg`, data);
@@ -115,7 +115,7 @@
                 ffmpegInstance.FS('writeFile', 'audio.mp3', await fetchFile(musicInput[0]));
             }
 
-            status.innerText = "Rendering (Wait)...";
+            status.innerText = "Rendering Video...";
             await ffmpegInstance.run(
                 '-framerate', '1/3', 
                 '-i', 'img%d.jpg', 
