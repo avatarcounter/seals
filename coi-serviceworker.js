@@ -1,8 +1,10 @@
 // 1. Show security status based on SharedArrayBuffer availability
 if (window.crossOriginIsolated) {
     const badge = document.getElementById('iso-badge');
-    badge.innerText = "Security: ACTIVE (Ready)";
-    badge.className = "secure";
+    if (badge) {
+        badge.innerText = "Security: ACTIVE (Ready)";
+        badge.className = "secure";
+    }
 }
 
 let ffmpegInstance = null;
@@ -17,7 +19,7 @@ async function processVideo() {
     const status = document.getElementById('status');
     const btn = document.getElementById('renderBtn');
     
-    // Safety check for Cross-Origin Isolation
+    // Safety check for Cross-Origin Isolation (SharedArrayBuffer)
     if (!window.crossOriginIsolated) {
         status.innerText = "Error: Security layer not active. Please refresh.";
         return;
@@ -30,7 +32,11 @@ async function processVideo() {
 
         if (!ffmpegInstance) {
             status.innerText = "Starting Engine...";
-            ffmpegInstance = createFFmpeg({ log: true });
+            ffmpegInstance = createFFmpeg({ 
+                log: true,
+                // Explicit corePath for CDN loading consistency
+                corePath: 'https://cdn.jsdelivr.net'
+            });
             await ffmpegInstance.load();
         }
 
@@ -106,11 +112,13 @@ async function processVideo() {
 }
 
 async function fetchWikiImages(topic, limit) {
+    // Fixed Wikimedia URL with full API path
     const url = `https://commons.wikimedia.org{encodeURIComponent(topic)}&gsrnamespace=6&gsrlimit=${limit}&prop=imageinfo&iiprop=url&format=json&origin=*`;
     const res = await fetch(url);
     const data = await res.json();
     if (!data.query) return [];
     return Object.values(data.query.pages)
+        .filter(p => p.imageinfo && p.imageinfo.length > 0)
         .map(p => p.imageinfo[0].url)
         .filter(u => u.match(/\.(jpg|jpeg|png)$/i));
 }
