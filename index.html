@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Maker Pro</title>
-    <!-- Bypasses security headers for GitHub Pages -->
+    <!-- 1. Security headers for GitHub Pages -->
     <script src="coi-serviceworker.js"></script>
-    <!-- Corrected Full CDN URL -->
-    <script src="https://cdnjs.cloudflare.com" integrity="sha512-z4PhNX7vuL3xVChQ1m2AB9Yg5AULVxXcg/SpIdNs6c5H0NE8XYXysP+DGNKHfuwvY7kxvUdBeoGlODJ6+SfaPg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- 2. FULL URL with absolute path to ffmpeg.min.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.10.1/ffmpeg.min.js" 
+            integrity="sha512-z4PhNX7vuL3xVChQ1m2AB9Yg5AULVxXcg/SpIdNs6c5H0NE8XYXysP+DGNKHfuwvY7kxvUdBeoGlODJ6+SfaPg==" 
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
         .card { background: #1e1e1e; padding: 30px; border-radius: 15px; display: inline-block; width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -19,29 +21,24 @@
     </style>
 </head>
 <body>
-
-<div class="card">
-    <h1>🎬 Video Maker</h1>
-    <select id="mode" onchange="toggleInputs()">
-        <option value="wikimedia">Wikimedia Scraper</option>
-        <option value="local">Local Files (Upload)</option>
-    </select>
-
-    <div id="wiki-settings">
-        <input type="text" id="topic" placeholder="Topic (e.g. Space Travel)">
-        <input type="number" id="limit" value="3" min="1" max="10">
+    <div class="card">
+        <h1>🎬 Video Maker</h1>
+        <select id="mode" onchange="toggleInputs()">
+            <option value="wikimedia">Wikimedia Scraper</option>
+            <option value="local">Local Files (Upload)</option>
+        </select>
+        <div id="wiki-settings">
+            <input type="text" id="topic" placeholder="Topic (e.g. Vintage Cars)">
+            <input type="number" id="limit" value="3" min="1" max="10">
+        </div>
+        <div id="local-settings" style="display:none;">
+            <input type="file" id="localFiles" accept="image/*" multiple>
+        </div>
+        <p>Music (Optional):</p>
+        <input type="file" id="bgMusic" accept="audio/*">
+        <button id="renderBtn" onclick="processVideo()">Generate & Download</button>
+        <div id="status">Ready</div>
     </div>
-
-    <div id="local-settings" style="display:none;">
-        <input type="file" id="localFiles" accept="image/*" multiple>
-    </div>
-
-    <p>Background Music (Optional):</p>
-    <input type="file" id="bgMusic" accept="audio/*">
-
-    <button id="renderBtn" onclick="processVideo()">Generate & Download</button>
-    <div id="status">Ready</div>
-</div>
 
 <script>
     let ffmpegInstance = null;
@@ -59,14 +56,15 @@
 
         try {
             if (typeof FFmpeg === 'undefined') {
-                throw new Error("Library failed to load. Please check your internet or disable ad-blockers.");
+                throw new Error("Library failed to load. Check your internet or disable ad-blockers.");
             }
 
             if (!ffmpegInstance) {
                 status.innerText = "Starting Engine...";
                 ffmpegInstance = FFmpeg.createFFmpeg({ 
                     log: true,
-                    corePath: 'https://cdnjs.cloudflare.com'
+                    // corePath for the engine assets
+                    corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.10.0/ffmpeg-core.min.js'
                 });
                 await ffmpegInstance.load();
             }
@@ -85,23 +83,23 @@
 
             if (images.length === 0) throw new Error("No images found.");
 
-            status.innerText = "Uploading to Virtual Drive...";
+            status.innerText = "Uploading Data...";
             for (let i = 0; i < images.length; i++) {
                 const data = await FFmpeg.fetchFile(images[i]);
                 ffmpeg.FS('writeFile', `img${i}.jpg`, data);
             }
 
-            const musicFile = document.getElementById('bgMusic').files[0];
-            if (musicFile) {
-                ffmpeg.FS('writeFile', 'audio.mp3', await FFmpeg.fetchFile(musicFile));
+            const musicFile = document.getElementById('bgMusic').files;
+            if (musicInput = musicFile[0]) {
+                ffmpeg.FS('writeFile', 'audio.mp3', await FFmpeg.fetchFile(musicInput));
             }
 
-            status.innerText = "Rendering Video (Wait)...";
+            status.innerText = "Rendering Video...";
             await ffmpeg.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'temp.mp4');
 
             let finalFile = 'temp.mp4';
-            if (musicFile) {
-                status.innerText = "Merging Music...";
+            if (musicFile[0]) {
+                status.innerText = "Merging Audio...";
                 await ffmpeg.run('-i', 'temp.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
                 finalFile = 'final.mp4';
             }
@@ -111,7 +109,7 @@
             a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             a.download = `video_${Date.now()}.mp4`;
             a.click();
-            status.innerText = "Success! Saved to Downloads.";
+            status.innerText = "Success!";
         } catch (e) {
             status.innerText = "Error: " + e.message;
             console.error(e);
