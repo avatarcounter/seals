@@ -2,22 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Maker Pro</title>
-    <!-- 1. Security headers for GitHub Pages -->
     <script src="coi-serviceworker.js"></script>
-    <!-- 2. FULL URL with absolute path to ffmpeg.min.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.10.1/ffmpeg.min.js" 
-            integrity="sha512-z4PhNX7vuL3xVChQ1m2AB9Yg5AULVxXcg/SpIdNs6c5H0NE8XYXysP+DGNKHfuwvY7kxvUdBeoGlODJ6+SfaPg==" 
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Use a direct, version-locked JS file to prevent MIME 404s -->
+    <script src="https://cdn.jsdelivr.net"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
         .card { background: #1e1e1e; padding: 30px; border-radius: 15px; display: inline-block; width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         input, select, button { width: 90%; padding: 12px; margin: 10px; border-radius: 5px; border: none; font-size: 14px; }
-        button { background: #ff4b2b; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #ff6a50; }
+        button { background: #ff4b2b; color: white; font-weight: bold; cursor: pointer; }
         button:disabled { background: #555; }
-        #status { color: #888; margin-top: 15px; font-size: 0.9em; font-style: italic; }
+        #status { color: #888; margin-top: 15px; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -25,23 +20,24 @@
         <h1>🎬 Video Maker</h1>
         <select id="mode" onchange="toggleInputs()">
             <option value="wikimedia">Wikimedia Scraper</option>
-            <option value="local">Local Files (Upload)</option>
+            <option value="local">Local Upload</option>
         </select>
         <div id="wiki-settings">
-            <input type="text" id="topic" placeholder="Topic (e.g. Vintage Cars)">
+            <input type="text" id="topic" placeholder="Topic (e.g. Space)">
             <input type="number" id="limit" value="3" min="1" max="10">
         </div>
         <div id="local-settings" style="display:none;">
             <input type="file" id="localFiles" accept="image/*" multiple>
         </div>
-        <p>Music (Optional):</p>
+        <p>Audio (Optional):</p>
         <input type="file" id="bgMusic" accept="audio/*">
-        <button id="renderBtn" onclick="processVideo()">Generate & Download</button>
+        <button id="renderBtn" onclick="processVideo()">Generate</button>
         <div id="status">Ready</div>
     </div>
 
 <script>
-    let ffmpegInstance = null;
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    let ffmpeg = null;
 
     function toggleInputs() {
         const mode = document.getElementById('mode').value;
@@ -55,61 +51,49 @@
         btn.disabled = true;
 
         try {
-            if (typeof FFmpeg === 'undefined') {
-                throw new Error("Library failed to load. Check your internet or disable ad-blockers.");
+            if (!ffmpeg) {
+                status.innerText = "Loading Engine...";
+                ffmpeg = createFFmpeg({ log: true });
+                await ffmpeg.load();
             }
 
-            if (!ffmpegInstance) {
-                status.innerText = "Starting Engine...";
-                ffmpegInstance = FFmpeg.createFFmpeg({ 
-                    log: true,
-                    // corePath for the engine assets
-                    corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.10.0/ffmpeg-core.min.js'
-                });
-                await ffmpegInstance.load();
-            }
-
-            const ffmpeg = ffmpegInstance;
             const mode = document.getElementById('mode').value;
-            let images = [];
+            let imageUrls = [];
 
             if (mode === 'wikimedia') {
-                status.innerText = "Finding Images...";
-                images = await fetchWikiImages(document.getElementById('topic').value, document.getElementById('limit').value);
+                status.innerText = "Scraping...";
+                imageUrls = await fetchWikiImages(document.getElementById('topic').value, document.getElementById('limit').value);
             } else {
                 const files = document.getElementById('localFiles').files;
-                for (let f of files) images.push(URL.createObjectURL(f));
+                for (let f of files) imageUrls.push(URL.createObjectURL(f));
             }
 
-            if (images.length === 0) throw new Error("No images found.");
+            if (imageUrls.length === 0) throw new Error("No images.");
 
-            status.innerText = "Uploading Data...";
-            for (let i = 0; i < images.length; i++) {
-                const data = await FFmpeg.fetchFile(images[i]);
-                ffmpeg.FS('writeFile', `img${i}.jpg`, data);
+            for (let i = 0; i < imageUrls.length; i++) {
+                ffmpeg.FS('writeFile', `img${i}.jpg`, await fetchFile(imageUrls[i]));
             }
 
-            const musicFile = document.getElementById('bgMusic').files;
-            if (musicInput = musicFile[0]) {
-                ffmpeg.FS('writeFile', 'audio.mp3', await FFmpeg.fetchFile(musicInput));
+            const music = document.getElementById('bgMusic').files[0];
+            if (music) {
+                ffmpeg.FS('writeFile', 'audio.mp3', await fetchFile(music));
             }
 
-            status.innerText = "Rendering Video...";
-            await ffmpeg.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'temp.mp4');
+            status.innerText = "Rendering...";
+            await ffmpeg.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'out.mp4');
 
-            let finalFile = 'temp.mp4';
-            if (musicFile[0]) {
-                status.innerText = "Merging Audio...";
-                await ffmpeg.run('-i', 'temp.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
-                finalFile = 'final.mp4';
+            let final = 'out.mp4';
+            if (music) {
+                await ffmpeg.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
+                final = 'final.mp4';
             }
 
-            const data = ffmpeg.FS('readFile', finalFile);
+            const data = ffmpeg.FS('readFile', final);
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-            a.download = `video_${Date.now()}.mp4`;
+            a.download = 'video.mp4';
             a.click();
-            status.innerText = "Success!";
+            status.innerText = "Done!";
         } catch (e) {
             status.innerText = "Error: " + e.message;
             console.error(e);
@@ -122,10 +106,7 @@
         const url = `https://commons.wikimedia.org{encodeURIComponent(topic)}&gsrnamespace=6&gsrlimit=${limit}&prop=imageinfo&iiprop=url&format=json&origin=*`;
         const res = await fetch(url);
         const data = await res.json();
-        if (!data.query) return [];
-        return Object.values(data.query.pages)
-            .map(p => p.imageinfo[0].url)
-            .filter(u => u.match(/\.(jpg|jpeg|png)$/i));
+        return data.query ? Object.values(data.query.pages).map(p => p.imageinfo[0].url) : [];
     }
 </script>
 </body>
