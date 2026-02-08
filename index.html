@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <title>Video Maker Pro</title>
     <script src="coi-serviceworker.js"></script>
+    <script src="https://cdn.jsdelivr.net" crossorigin="anonymous"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
         .card { background: #1e1e1e; padding: 30px; border-radius: 15px; display: inline-block; width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         input, select, button { width: 90%; padding: 12px; margin: 10px; border-radius: 5px; border: none; font-size: 14px; }
-        button { background: #ff4b2b; color: white; font-weight: bold; cursor: pointer; }
+        button { background: #ff4b2b; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
         button:disabled { background: #555; }
         #status { color: #888; margin-top: 15px; font-size: 0.9em; }
         #badge { font-size: 10px; padding: 4px; border-radius: 4px; background: #e74c3c; margin-bottom: 10px; display: inline-block; }
@@ -16,10 +17,10 @@
 </head>
 <body>
     <div class="card">
-        <div id="badge">Security: Booting...</div>
+        <div id="badge">Security: OFF (Refresh Page)</div>
         <h1>🎬 Video Maker</h1>
-        <input type="text" id="topic" placeholder="Topic (e.g. Nature)">
-        <input type="number" id="limit" value="3" min="1">
+        <input type="text" id="topic" placeholder="Topic (e.g. Space)">
+        <input type="number" id="limit" value="3" min="1" max="10">
         <p>Audio (MP3):</p>
         <input type="file" id="bgMusic" accept="audio/*">
         <button id="renderBtn" onclick="processVideo()">Generate Video</button>
@@ -27,49 +28,28 @@
     </div>
 
 <script>
-    // 1. Monitor Security Status
     if (window.crossOriginIsolated) {
         const b = document.getElementById('badge');
         b.innerText = "Security: ACTIVE";
         b.style.background = "#2ecc71";
     }
 
-    // 2. Dynamic Library Loader to bypass Service Worker race conditions
-    function loadScript(src) {
-        return new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = src;
-            s.crossOrigin = "anonymous";
-            s.onload = resolve;
-            s.onerror = reject;
-            document.head.appendChild(s);
-        });
-    }
-
-    let ffmpegInstance = null;
+    let ffmpeg = null;
 
     async function processVideo() {
         const status = document.getElementById('status');
         const btn = document.getElementById('renderBtn');
-        if (!window.crossOriginIsolated) return alert("Security layer not active. Please refresh.");
-        
+        if (!window.crossOriginIsolated) return alert("Please refresh to enable security layer.");
+
         btn.disabled = true;
-
         try {
-            if (typeof FFmpeg === 'undefined') {
-                status.innerText = "Fetching Library...";
-                await loadScript("https://cdn.jsdelivr.net");
-            }
-
-            const { createFFmpeg, fetchFile } = FFmpeg;
-
-            if (!ffmpegInstance) {
+            if (!ffmpeg) {
                 status.innerText = "Loading Engine...";
-                ffmpegInstance = createFFmpeg({ 
+                ffmpeg = FFmpeg.createFFmpeg({ 
                     log: true, 
                     corePath: 'https://cdn.jsdelivr.net' 
                 });
-                await ffmpegInstance.load();
+                await ffmpeg.load();
             }
 
             status.innerText = "Scraping Wikimedia...";
@@ -77,30 +57,34 @@
             const limit = document.getElementById('limit').value;
             const images = await fetchWiki(topic, limit);
 
+            if (images.length === 0) throw new Error("No images found for this topic.");
+
             for (let i = 0; i < images.length; i++) {
-                ffmpegInstance.FS('writeFile', `img${i}.jpg`, await fetchFile(images[i]));
+                ffmpeg.FS('writeFile', `img${i}.jpg`, await FFmpeg.fetchFile(images[i]));
             }
 
             const music = document.getElementById('bgMusic').files;
-            if (music.length > 0) {
-                ffmpegInstance.FS('writeFile', 'audio.mp3', await fetchFile(music[0]));
+            const hasMusic = music.length > 0;
+            if (hasMusic) {
+                ffmpeg.FS('writeFile', 'audio.mp3', await FFmpeg.fetchFile(music[0]));
             }
 
-            status.innerText = "Rendering...";
-            await ffmpegInstance.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'out.mp4');
+            status.innerText = "Rendering Video...";
+            await ffmpeg.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'out.mp4');
 
-            let final = 'out.mp4';
-            if (music.length > 0) {
-                await ffmpegInstance.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
-                final = 'final.mp4';
+            let finalFile = 'out.mp4';
+            if (hasMusic) {
+                status.innerText = "Merging Audio...";
+                await ffmpeg.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
+                finalFile = 'final.mp4';
             }
 
-            const data = ffmpegInstance.FS('readFile', final);
+            const data = ffmpeg.FS('readFile', finalFile);
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-            a.download = 'video.mp4';
+            a.download = `video_${Date.now()}.mp4`;
             a.click();
-            status.innerText = "Success!";
+            status.innerText = "Success! Saved to Downloads.";
         } catch (e) {
             status.innerText = "Error: " + e.message;
             console.error(e);
@@ -114,7 +98,10 @@
         const res = await fetch(url);
         const data = await res.json();
         if (!data.query) return [];
-        return Object.values(data.query.pages).map(p => p.imageinfo[0].url);
+        // Corrected path to extract URL from imageinfo array
+        return Object.values(data.query.pages)
+            .filter(p => p.imageinfo && p.imageinfo[0])
+            .map(p => p.imageinfo[0].url);
     }
 </script>
 </body>
