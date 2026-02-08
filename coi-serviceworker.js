@@ -5,7 +5,6 @@ if (typeof window === "undefined") {
         if (e.request.cache === "only-if-cached" && e.request.mode !== "same-origin") return;
         e.respondWith(
             fetch(e.request).then((res) => {
-                if (res.status === 0) return res;
                 const h = new Headers(res.headers);
                 h.set("Cross-Origin-Embedder-Policy", "require-corp");
                 h.set("Cross-Origin-Opener-Policy", "same-origin");
