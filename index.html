@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Video Maker Pro</title>
-    <!-- Fixes Security Headers for GitHub Pages -->
+    <!-- 1. Loads security headers for GitHub Pages -->
     <script src="coi-serviceworker.js"></script>
-    <!-- FULL URL to the actual .js file (Fixes MIME Type Error) -->
+    <!-- 2. FIXED: Explicit path to the .js file to stop MIME errors -->
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
@@ -37,7 +37,7 @@
     </div>
 
 <script>
-    // Initialize variables carefully to avoid ReferenceErrors
+    // Initialize as null outside the function
     let ffmpegInstance = null;
 
     function toggleInputs() {
@@ -52,8 +52,11 @@
         btn.disabled = true;
 
         try {
-            if (typeof FFmpeg === 'undefined') throw new Error("FFmpeg library not loaded. Check your internet.");
-            
+            // Check if library loaded from CDN
+            if (typeof FFmpeg === 'undefined') {
+                throw new Error("FFmpeg library failed to load. Check your internet connection.");
+            }
+
             const { createFFmpeg, fetchFile } = FFmpeg;
 
             if (!ffmpegInstance) {
@@ -66,7 +69,7 @@
             let imageUrls = [];
 
             if (mode === 'wikimedia') {
-                status.innerText = "Scraping...";
+                status.innerText = "Searching Wikimedia...";
                 imageUrls = await fetchWikiImages(document.getElementById('topic').value, document.getElementById('limit').value);
             } else {
                 const files = document.getElementById('localFiles').files;
@@ -75,6 +78,7 @@
 
             if (imageUrls.length === 0) throw new Error("No images found.");
 
+            status.innerText = "Processing images...";
             for (let i = 0; i < imageUrls.length; i++) {
                 ffmpegInstance.FS('writeFile', `img${i}.jpg`, await fetchFile(imageUrls[i]));
             }
@@ -89,7 +93,7 @@
 
             let finalFile = 'out.mp4';
             if (musicFiles.length > 0) {
-                status.innerText = "Adding Audio...";
+                status.innerText = "Adding audio track...";
                 await ffmpegInstance.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
                 finalFile = 'final.mp4';
             }
@@ -99,7 +103,7 @@
             a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             a.download = 'video.mp4';
             a.click();
-            status.innerText = "Done!";
+            status.innerText = "Done! Check your downloads.";
         } catch (e) {
             status.innerText = "Error: " + e.message;
             console.error(e);
@@ -112,7 +116,8 @@
         const url = `https://commons.wikimedia.org{encodeURIComponent(topic)}&gsrnamespace=6&gsrlimit=${limit}&prop=imageinfo&iiprop=url&format=json&origin=*`;
         const res = await fetch(url);
         const data = await res.json();
-        return data.query ? Object.values(data.query.pages).map(p => p.imageinfo[0].url) : [];
+        if (!data.query) return [];
+        return Object.values(data.query.pages).map(p => p.imageinfo[0].url);
     }
 </script>
 </body>
