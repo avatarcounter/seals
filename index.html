@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Video Maker Pro</title>
+    <!-- Fixes Security Headers for GitHub Pages -->
     <script src="coi-serviceworker.js"></script>
-    <!-- Use a direct, version-locked JS file to prevent MIME 404s -->
+    <!-- FULL URL to the actual .js file (Fixes MIME Type Error) -->
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
@@ -36,8 +37,8 @@
     </div>
 
 <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    let ffmpeg = null;
+    // Initialize variables carefully to avoid ReferenceErrors
+    let ffmpegInstance = null;
 
     function toggleInputs() {
         const mode = document.getElementById('mode').value;
@@ -51,10 +52,14 @@
         btn.disabled = true;
 
         try {
-            if (!ffmpeg) {
+            if (typeof FFmpeg === 'undefined') throw new Error("FFmpeg library not loaded. Check your internet.");
+            
+            const { createFFmpeg, fetchFile } = FFmpeg;
+
+            if (!ffmpegInstance) {
                 status.innerText = "Loading Engine...";
-                ffmpeg = createFFmpeg({ log: true });
-                await ffmpeg.load();
+                ffmpegInstance = createFFmpeg({ log: true });
+                await ffmpegInstance.load();
             }
 
             const mode = document.getElementById('mode').value;
@@ -68,27 +73,28 @@
                 for (let f of files) imageUrls.push(URL.createObjectURL(f));
             }
 
-            if (imageUrls.length === 0) throw new Error("No images.");
+            if (imageUrls.length === 0) throw new Error("No images found.");
 
             for (let i = 0; i < imageUrls.length; i++) {
-                ffmpeg.FS('writeFile', `img${i}.jpg`, await fetchFile(imageUrls[i]));
+                ffmpegInstance.FS('writeFile', `img${i}.jpg`, await fetchFile(imageUrls[i]));
             }
 
-            const music = document.getElementById('bgMusic').files[0];
-            if (music) {
-                ffmpeg.FS('writeFile', 'audio.mp3', await fetchFile(music));
+            const musicFiles = document.getElementById('bgMusic').files;
+            if (musicFiles.length > 0) {
+                ffmpegInstance.FS('writeFile', 'audio.mp3', await fetchFile(musicFiles[0]));
             }
 
-            status.innerText = "Rendering...";
-            await ffmpeg.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'out.mp4');
+            status.innerText = "Rendering Video...";
+            await ffmpegInstance.run('-framerate', '1/3', '-i', 'img%d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', 'out.mp4');
 
-            let final = 'out.mp4';
-            if (music) {
-                await ffmpeg.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
-                final = 'final.mp4';
+            let finalFile = 'out.mp4';
+            if (musicFiles.length > 0) {
+                status.innerText = "Adding Audio...";
+                await ffmpegInstance.run('-i', 'out.mp4', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest', 'final.mp4');
+                finalFile = 'final.mp4';
             }
 
-            const data = ffmpeg.FS('readFile', final);
+            const data = ffmpegInstance.FS('readFile', finalFile);
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             a.download = 'video.mp4';
