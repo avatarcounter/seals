@@ -11,7 +11,7 @@ if (typeof window === "undefined") {
                 h.set("Cross-Origin-Opener-Policy", "same-origin");
                 h.set("Cross-Origin-Resource-Policy", "cross-origin");
                 return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
-            }).catch(err => console.error(err))
+            })
         );
     });
 }
