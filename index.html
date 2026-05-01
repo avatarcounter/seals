@@ -3,8 +3,7 @@
 <head>  
   <title> I LOVE SEALS </title>
   <meta property="og:image" content="https://raw.githubusercontent.com/avatarcounter/seals/refs/heads/main/MotorSeal.png">
-<meta property="og:description" content="seals are so cool...">
-
+  <meta property="og:description" content="seals are so cool...">
 </head>
  <body>
 <strong>
@@ -44,21 +43,27 @@
 <strong><small>seal</small></strong>
 <br>
    <br>
-   <script type="text/javascript" src="https://gstatic.com"></script>
-<script type="text/javascript">
-  trends.embed.renderExploreWidget("TIMESERIES", {
-    "comparisonItem": [{
-      "keyword": "seal",
-      "geo": "GB",
-      "time": "today 12-m"
-    }],
-    "category": 0,
-    "property": ""
-  }, {
-    "exploreQuery": "q=seal&geo=GB&date=today 12-m",
-    "guestPath": "https://google.com"
-  });
-</script>
+
+   <!-- Fixed Google Trends Section -->
+   <center>
+   <div style="width: 100%; max-width: 600px;">
+     <script type="text/javascript" src="https://gstatic.com"></script>
+     <script type="text/javascript">
+       trends.embed.renderExploreWidget("TIMESERIES", {
+         "comparisonItem": [{
+           "keyword": "seal",
+           "geo": "GB",
+           "time": "today 12-m"
+         }],
+         "category": 0,
+         "property": ""
+       }, {
+         "exploreQuery": "q=seal&geo=GB&date=today 12-m",
+         "guestPath": "https://google.com"
+       });
+     </script>
+   </div>
+   </center>
 
  </body>
 </html>
