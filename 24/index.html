@@ -33,12 +33,11 @@
     
     // Initial load: create 50 "24"s
     function addNumbers(count) {
+        let html = '';
         for (let i = 0; i < count; i++) {
-            const div = document.createElement('div');
-            div.className = 'number';
-            div.textContent = '24';
-            container.appendChild(div);
+            html += '<div class="number">24</div>';
         }
+        container.innerHTML += html;
     }
     
     // Initial load
