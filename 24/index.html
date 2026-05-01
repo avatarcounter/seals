@@ -31,7 +31,7 @@
 <script>
     const container = document.getElementById('container');
     
-    // Initial load: create 50 "24"s
+    // Initial load: create 200 "24"s to load beyond the visible screen
     function addNumbers(count) {
         let html = '';
         for (let i = 0; i < count; i++) {
@@ -40,8 +40,8 @@
         container.innerHTML += html;
     }
     
-    // Initial load
-    addNumbers(50);
+    // Initial load - increased from 50 to 200
+    addNumbers(200);
     
     // Infinite scroll: add more as user scrolls down
     window.addEventListener('scroll', function() {
