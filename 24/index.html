@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>24</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #fff;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="container"></div>
+
+<script>
+    const container = document.getElementById('container');
+    
+    // Initial load: create 50 "24"s
+    function addNumbers(count) {
+        for (let i = 0; i < count; i++) {
+            const div = document.createElement('div');
+            div.className = 'number';
+            div.textContent = '24';
+            container.appendChild(div);
+        }
+    }
+    
+    // Initial load
+    addNumbers(50);
+    
+    // Infinite scroll: add more as user scrolls down
+    window.addEventListener('scroll', function() {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+            addNumbers(20); // Add 20 more "24"s when near bottom
+        }
+    });
+</script>
+
+</body>
+</html>
