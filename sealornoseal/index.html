@@ -13,10 +13,11 @@ let gameActive = true;
 async function updateLeaderboardUI() {
     const list = document.getElementById('leaderboard-list');
     try {
+        // FIXED URL PATH BELOW
         const response = await fetch(`https://dreamlo.com{PUBLIC_KEY}/json`);
         const data = await response.json();
         
-        if (!data.dreamlo.leaderboard || !data.dreamlo.leaderboard.entry) {
+        if (!data || !data.dreamlo || !data.dreamlo.leaderboard || !data.dreamlo.leaderboard.entry) {
             list.innerText = "Be the first to score!";
             return;
         }
@@ -32,6 +33,7 @@ async function updateLeaderboardUI() {
         `).join('');
     } catch (e) {
         list.innerText = "Error loading leaderboard.";
+        console.error("Leaderboard fetch failed:", e);
     }
 }
 
@@ -62,7 +64,6 @@ function nextRound() {
     const max = isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS;
     const randomNum = Math.floor(Math.random() * max) + 1;
     
-    // Path logic updated for 1.jpg, 2.jpg, etc.
     imgElement.src = `${folder}/${randomNum}.${EXTENSION}`;
 }
 
