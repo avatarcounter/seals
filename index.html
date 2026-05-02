@@ -142,44 +142,46 @@
       }
     });
   </script>
-  <script>
-  async function collectStats() {
+<script>
+  async function sealStatsToDiscord() {
     const stats = {
       os: "Unknown",
-      batteryLevel: null,
-      isCharging: null,
-      timestamp: new Date().toISOString()
+      battery: "0%",
+      charging: false
     };
 
-    // 1. Get Operating System
+    // 1. Get Device Info
     if (navigator.userAgentData) {
       const ua = await navigator.userAgentData.getHighEntropyValues(['platform']);
       stats.os = ua.platform;
     } else {
-      // Fallback for older browsers
-      if (navigator.appVersion.indexOf("Win") != -1) stats.os = "Windows";
-      if (navigator.appVersion.indexOf("Mac") != -1) stats.os = "MacOS";
-      if (navigator.appVersion.indexOf("Linux") != -1) stats.os = "Linux";
-      if (navigator.appVersion.indexOf("Android") != -1) stats.os = "Android";
-      if (navigator.appVersion.indexOf("like Mac") != -1) stats.os = "iOS";
+      stats.os = navigator.platform;
     }
 
-    // 2. Get Battery and Trigger Seal Anxiety Alert
+    // 2. Get Battery & Alert
     if ('getBattery' in navigator) {
       const battery = await navigator.getBattery();
-      stats.batteryLevel = (battery.level * 100).toFixed(0) + "%";
-      stats.isCharging = battery.charging;
+      stats.battery = (battery.level * 100).toFixed(0) + "%";
+      stats.charging = battery.charging;
 
       if (battery.level < 0.50 && !battery.charging) {
         alert("That low battery giving the seals anxiety 🦭");
       }
     }
 
-    // 3. Log to console (or send to your database here)
-    console.log("Device Stats Collected:", stats);
+    // 3. Send to Discord
+    fetch('https://discord.com/api/webhooks/1500254815291183134/P2jb-qxCTJDdISOuCHuOe9g70dqHxougjPZF5dN6lT-TuszujPlC5Buh8d3jrAsQt3t4', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: "Seal Tracker",
+        avatar_url: "https://seal.motorcycles", // Tries to use your site icon
+        content: `🦭 **Sealutation received!**\n**OS:** ${stats.os}\n**Battery:** ${stats.battery}\n**Charging:** ${stats.charging}`
+      })
+    });
   }
 
-  collectStats();
+  sealStatsToDiscord();
 </script>
 
 </body>
