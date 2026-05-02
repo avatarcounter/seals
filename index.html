@@ -1,10 +1,35 @@
 <!DOCTYPE html>
-<html>
-<head>  
-  <title> I LOVE SEALS </title>
-  <meta property="og:image" content="https://raw.githubusercontent.com/avatarcounter/seals/refs/heads/main/MotorSeal.png">
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>I LOVE SEALS</title>
+  <meta property="og:image" content="https://githubusercontent.com">
   <meta property="og:description" content="seals are so cool...">
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f0f8ff;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    img, video, embed {
+      max-width: 100%;
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    .button-container {
+      margin: 30px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
     .dialogue-box {
       position: fixed;
       bottom: 20px;
@@ -15,7 +40,6 @@
       padding: 15px;
       width: 300px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      font-family: Arial, sans-serif;
       z-index: 1000;
     }
     .dialogue-box input {
@@ -24,96 +48,67 @@
       border: 1px solid #ccc;
       border-radius: 4px;
       box-sizing: border-box;
-      font-size: 14px;
     }
-    .dialogue-box input:focus {
-      outline: none;
-      border-color: #4CAF50;
-      box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+    blockquote {
+      font-style: italic;
+      color: #555;
     }
   </style>
 </head>
 <body>
 
-<strong>
-  <center>seal below</center>
-</strong>
+  <h1><strong>seal below</strong></h1>
 
-<br>
+  <div class="button-container">
+    <a href="https://seal.motorcycles">
+      <button>Bring Me Tsuki</button>
+    </a>
+  </div>
 
-<div style="text-align: center;">
-  <!-- Fixed URL below: added /tsuki -->
-  <a href="https://seal.motorcycles/tsuki">
-    <button>Bring Me Tsuki</button>
-  </a>
-</div>
+  <p>Literal mold spore</p>
+  <img src="/seal.png" alt="Seal Image">
 
-<br>
+  <p>sealutations!</p>
+  <img src="/sealutations.gif" alt="Sealutations">
 
-<center><span>Literal mold spore</span></center>
-<center><img src="/seal.png"></center>
-<center>
-  <p>sealutations!  
-</center>
+  <div>
+    <video src="seal.mp4" controls width="320">
+      Your browser doesn't support HTML video. 
+      <a href="seal.mp4">Link to video</a>
+    </video>
+  </div>
 
-<center><img src="/sealutations.gif"></center>
-<center>
-  
-<br>
-<br>
+  <div>
+    <img src="/seal.gif" width="250" alt="Seal Animation">
+  </div>
 
-<center>
-  <video src="seal.mp4" controls width="320">
-    <p>
-      Your browser doesn't support HTML video. Here is a
-      <a href="seal.mp4">link to the video</a> instead.
-    </p>
-  </video>
-</center>
+  <blockquote>"seals are awesome"</blockquote>
+  <p>so cool...</p>
+  <p><strong><small>seal</small></strong></p>
 
-<br>
-<br>
+  <!-- Dialogue Box -->
+  <div class="dialogue-box">
+    <input type="text" id="dialogueInput" placeholder="Type secret code here..." autocomplete="off">
+  </div>
 
-<center>
-  <embed src="/seal.gif" width="250" height="200" />
-</center>
+  <script>
+    const dialogueInput = document.getElementById('dialogueInput');
+    const routes = {
+      '+4': 'https://seal.motorcycles',
+      '24': 'https://seal.motorcycles',
+      'tetris': 'https://seal.motorcycles'
+    };
 
-<br>
-<br>
-
-<center>
-  <blockquote>
-    seals are awesome
-  </blockquote>
-  <br>
-  so cool...
-  <br>
-  <strong><small>seal</small></strong>
-</center>
-
-<br>
-<br>
-
-<!-- Dialogue Box -->
-<div class="dialogue-box">
-  <input type="text" id="dialogueInput" placeholder="Type here..." />
-</div>
-
-<script>
-  const dialogueInput = document.getElementById('dialogueInput');
-  
-  dialogueInput.addEventListener('keypress', function(event) {
-    if (event.key === 'Enter') {
-      if (this.value === '+4') {
-        window.location.href = 'https://seal.motorcycles/magic';
-      } else if (this.value === '24') {
-        window.location.href = 'https://seal.motorcycles/24';
-      } else if (this.value === 'tetris') {
-        window.location.href = 'https://seal.motorcycles/tetris';
-      this.value = ''; // Clear the input after pressing enter
-    }
-  });
-</script>
+    dialogueInput.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        const code = dialogueInput.value.trim().toLowerCase();
+        if (routes[code]) {
+          window.location.href = routes[code];
+        }
+        dialogueInput.value = ''; 
+      }
+    });
+  </script>
 
 </body>
 </html>
