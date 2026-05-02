@@ -1,10 +1,8 @@
-// netlify/functions/get-scores.js
 exports.handler = async () => {
     const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
     const url = `http://dreamlo.com{PUBLIC_KEY}/json`;
 
     try {
-        // NATIVE FETCH (No require needed in Node 18+)
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -15,7 +13,10 @@ exports.handler = async () => {
 
         return {
             statusCode: 200,
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*" 
+            },
             body: JSON.stringify(data)
         };
     } catch (error) {
