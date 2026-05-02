@@ -126,6 +126,25 @@
       'word' : 'https://seal.motorcycles/sealmotorcycles'
     };
 
+      dialogueInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+      const code = dialogueInput.value.trim().toLowerCase();
+
+      // Check if it's a redirect code
+      if (routes[code]) {
+        window.location.href = routes[code];
+      } 
+      // Check if it's the reveal code
+      else if (code === 'Deal') {
+        secretSection.style.display = 'block';
+        secretSection.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      dialogueInput.value = ''; 
+    }
+  });
+</script>
+  
     dialogueInput.addEventListener('keypress', (event) => {
       if (event.key === 'Enter') {
         const code = dialogueInput.value.trim().toLowerCase();
