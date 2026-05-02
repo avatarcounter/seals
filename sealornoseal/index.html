@@ -59,31 +59,34 @@
     let gameActive = true;
 
     async function updateLeaderboardUI() {
-        const list = document.getElementById('leaderboard-list');
-        try {
-            const response = await fetch('/.netlify/functions/get-scores');
-            if (!response.ok) throw new Error("Offline");
-            
-            const data = await response.json();
-            const entriesRaw = data?.dreamlo?.leaderboard?.entry;
+    async function updateLeaderboardUI() {
+    const list = document.getElementById('leaderboard-list');
+    try {
+        const response = await fetch('/.netlify/functions/get-scores');
+        const data = await response.json();
+        
+        // This safely checks the path data.dreamlo.leaderboard.entry
+        let entries = data?.dreamlo?.leaderboard?.entry;
 
-            if (!entriesRaw) {
-                list.innerHTML = "<div class='entry' style='justify-content:center;'>No scores yet!</div>";
-                return;
-            }
-
-            let entries = Array.isArray(entriesRaw) ? entriesRaw : [entriesRaw];
-
-            list.innerHTML = entries.slice(0, 5).map(s => `
-                <div class="entry">
-                    <span>${s.name}</span>
-                    <span><strong>${s.score}</strong></span>
-                </div>
-            `).join('');
-        } catch (e) {
-            list.innerHTML = "<div class='entry' style='justify-content:center; color:#999;'>Leaderboard Offline</div>";
+        if (!entries) {
+            list.innerHTML = "<div class='entry'>No scores yet!</div>";
+            return;
         }
+
+        // FORCE into an array so .map() doesn't crash
+        const scoreArray = Array.isArray(entries) ? entries : [entries];
+
+        list.innerHTML = scoreArray.slice(0, 5).map(s => `
+            <div class="entry">
+                <span>${s.name}</span>
+                <span><strong>${s.score}</strong></span>
+            </div>
+        `).join('');
+    } catch (e) {
+        list.innerHTML = "<div class='entry'>Leaderboard Offline</div>";
     }
+}
+
 
     function saveScore(name, finalScore) {
         const cleanName = name.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 12);
