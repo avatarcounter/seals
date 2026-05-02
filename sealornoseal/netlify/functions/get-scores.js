@@ -1,6 +1,6 @@
 exports.handler = async () => {
     const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
-    // Fixed: Added /lb/ and the $ for the variable
+    // This is the correct, full URL format for dreamlo JSON
     const url = `https://dreamlo.com{PUBLIC_KEY}/json`;
 
     try {
