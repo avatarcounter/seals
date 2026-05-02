@@ -69,7 +69,7 @@
   <h1><strong>seal below</strong></h1>
 
   <div class="button-container">
-    <a href="https://seal.motorcycles/tsuki">
+    <a href="https://seal.motorcycles">
       <button>Bring Me Tsuki</button>
     </a>
   </div>
@@ -96,81 +96,64 @@
   <blockquote>"seals are awesome"</blockquote>
   <p>so cool...</p>
   <p><strong><small>seal</small></strong></p>
-<!-- Hidden Seal or No Seal Section -->
-<div id="secretSection" style="display: none; margin-top: 50px; padding: 20px; border-top: 2px dashed #ccc;">
-  <h3>SEAL OR NO SEAL?</h3>
-  <div class="button-container">
-    <a href="https://seal.motorcycles/sealornoseal">
-      <button style="background: #4CAF50;">SEAL</button>
-    </a>
-    <a href="about:blank">
-      <button style="background: #f44336; margin-left: 10px;">NO SEAL</button>
-    </a>
-  </div>
-</div>
 
-  <!-- Dialogue Box -->
+  <div id="secretSection" style="display: none; margin-top: 50px; padding: 20px; border-top: 2px dashed #ccc;">
+    <h3>SEAL OR NO SEAL?</h3>
+    <div class="button-container">
+      <a href="https://seal.motorcycles">
+        <button style="background: #4CAF50;">SEAL</button>
+      </a>
+      <a href="about:blank">
+        <button style="background: #f44336; margin-left: 10px;">NO SEAL</button>
+      </a>
+    </div>
+  </div>
+
   <div class="dialogue-box">
     <input type="text" id="dialogueInput" placeholder="Type secret code here..." autocomplete="off">
   </div>
 
+  <div style="margin-top: 50px; padding: 20px; border-top: 2px dashed #ccc;">
+    <h3>SEAL OR NO SEAL?</h3>
+    <div class="button-container">
+      <a href="https://seal.motorcycles">
+        <button style="background: #4CAF50;">SEAL</button>
+      </a>
+      <a href="about:blank">
+        <button style="background: #f44336; margin-left: 10px;">NO SEAL</button>
+      </a>
+    </div>
+  </div>
+
   <script>
     const dialogueInput = document.getElementById('dialogueInput');
+    const secretSection = document.getElementById('secretSection');
     
     const routes = {
       '+4': 'https://seal.motorcycles/magic',
       '24': 'https://seal.motorcycles/24',
       'tetris': 'https://seal.motorcycles/tetris',
-      'beast' : 'https://seal.motorcycles',
+      'beast' : 'https://seal.motorcycles/ihatebeast',
       'world' : 'https://goodbyetoa.world',
       'word' : 'https://seal.motorcycles/sealmotorcycles'
     };
 
-      dialogueInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') {
-      const code = dialogueInput.value.trim().toLowerCase();
-
-      // Check if it's a redirect code
-      if (routes[code]) {
-        window.location.href = routes[code];
-      } 
-      // Check if it's the reveal code
-      else if (code === 'Deal') {
-        secretSection.style.display = 'block';
-        secretSection.scrollIntoView({ behavior: 'smooth' });
-      }
-
-      dialogueInput.value = ''; 
-    }
-  });
-</script>
-  
     dialogueInput.addEventListener('keypress', (event) => {
       if (event.key === 'Enter') {
         const code = dialogueInput.value.trim().toLowerCase();
+
         if (routes[code]) {
           window.location.href = routes[code];
+        } 
+        else if (code === 'deal') {
+          secretSection.style.display = 'block';
+          secretSection.scrollIntoView({ behavior: 'smooth' });
         }
+
         dialogueInput.value = ''; 
       }
     });
   </script>
-<br>
-  <br>
-  <br>
-  <!-- Seal or No Seal Section -->
-<div style="margin-top: 50px; padding: 20px; border-top: 2px dashed #ccc;">
-  <h3>SEAL OR NO SEAL?</h3>
-  <div class="button-container">
-    <a href="https://seal.motorcycles">
-      <button style="background: #4CAF50;">SEAL</button>
-    </a>
-    <a href="about:blank">
-      <button style="background: #f44336; margin-left: 10px;">NO SEAL</button>
-    </a>
-  </div>
-</div>
-  <br>
-  <br>
+
 </body>
 </html>
