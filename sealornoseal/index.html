@@ -19,6 +19,7 @@
         #feedback { margin: 15px; font-weight: bold; height: 1.5em; min-height: 24px; }
         .leaderboard { margin-top: 30px; border-top: 2px solid #eee; padding-top: 15px; }
         .entry { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
+        .entry:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
@@ -49,43 +50,56 @@
 </div>
 
 <script>
+    // --- CONFIGURATION ---
     const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
     const PRIVATE_KEY = "waBsY9hwf0urcEpwwn8rLw1Z2xYyPvZEqGdwAay68VqQ"; 
     
-    let score = 0;
+    const TOTAL_SEALS = 5;    
+    const TOTAL_NOSEALS = 5;  
+    const EXTENSION = "jpg";  
+
     let isCorrectSeal = false;
+    let score = 0;
     let gameActive = true;
 
-    // 1. LOAD LEADERBOARD
+    // 1. LOAD LEADERBOARD (Directly via Proxy)
     function updateLeaderboardUI() {
-        const list = document.getElementById('leaderboard-list');
         const script = document.createElement('script');
-        // This proxy makes the HTTP Dreamlo data look like HTTPS to your browser
+        // This proxy lets the browser see the insecure Dreamlo data as secure
         const target = `http://dreamlo.com{PUBLIC_KEY}/jsonp/renderScores`;
         script.src = `https://allorigins.win{encodeURIComponent(target)}`;
         document.body.appendChild(script);
         script.onload = () => document.body.removeChild(script);
     }
 
+    // Global callback for Dreamlo JSONP
     window.renderScores = function(data) {
         const list = document.getElementById('leaderboard-list');
         let entries = data?.dreamlo?.leaderboard?.entry;
-        if (!entries) return list.innerHTML = "<div class='entry'>No scores yet!</div>";
-        
+
+        if (!entries) {
+            list.innerHTML = "<div class='entry' style='justify-content:center;'>No scores yet!</div>";
+            return;
+        }
+
         const scoreArray = Array.isArray(entries) ? entries : [entries];
         list.innerHTML = scoreArray.slice(0, 5).map(s => `
-            <div class="entry"><span>${s.name}</span><span><strong>${s.score}</strong></span></div>
+            <div class="entry">
+                <span>${s.name}</span>
+                <span><strong>${s.score}</strong></span>
+            </div>
         `).join('');
     };
 
-    // 2. SAVE SCORE
+    // 2. SAVE SCORE (Via Proxy Ping)
     function saveScore(name, finalScore) {
         const cleanName = encodeURIComponent(name.trim().substring(0, 12));
         const target = `http://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
         
-        // We use a simple "Image Ping" through the proxy to save
+        // Using an image ping through the proxy to bypass SSL block
         const ping = new Image();
         ping.src = `https://allorigins.win{encodeURIComponent(target)}`;
+        
         setTimeout(updateLeaderboardUI, 1500);
     }
 
@@ -93,35 +107,50 @@
     function nextRound() {
         gameActive = true;
         document.getElementById('feedback').innerText = "";
-        const img = document.getElementById('display-img');
+        const imgElement = document.getElementById('display-img');
+        
         isCorrectSeal = Math.random() < 0.5;
         const folder = isCorrectSeal ? "seal" : "noseal";
-        img.src = `${folder}/${Math.floor(Math.random() * 5) + 1}.jpg`;
+        const total = isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS;
+        const randomNum = Math.floor(Math.random() * total) + 1;
+        
+        imgElement.src = `${folder}/${randomNum}.${EXTENSION}`;
     }
 
     function check(userChoice) {
         if (!gameActive) return;
         gameActive = false;
+
         const feedback = document.getElementById('feedback');
+        const scoreDisplay = document.getElementById('correct-count');
+        
         if (userChoice === isCorrectSeal) {
             score++;
-            document.getElementById('correct-count').innerText = score;
+            scoreDisplay.innerText = score;
             feedback.innerText = "Correct! 🌊";
             feedback.style.color = "#27ae60";
             setTimeout(nextRound, 1000);
         } else {
-            feedback.innerText = `Game Over! That was a ${isCorrectSeal ? "Seal" : "Sea Lion"}.`;
+            const actualName = isCorrectSeal ? "Seal" : "Sea Lion";
+            feedback.innerText = `Game Over! That was a ${actualName}.`;
             feedback.style.color = "#c0392b";
+            
             setTimeout(() => {
                 if (score > 0) {
-                    const name = prompt(`Streak: ${score}! Name:`);
-                    if (name) saveScore(name, score);
+                    const name = prompt(`Streak: ${score}! Name for leaderboard:`);
+                    if (name && name.trim()) {
+                        saveScore(name, score);
+                    }
                 }
-                score = 0;
-                document.getElementById('correct-count').innerText = 0;
-                nextRound();
+                resetGame();
             }, 1200);
         }
+    }
+
+    function resetGame() {
+        score = 0;
+        document.getElementById('correct-count').innerText = 0;
+        nextRound();
     }
 
     updateLeaderboardUI();
