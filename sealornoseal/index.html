@@ -62,19 +62,15 @@
     let score = 0;
     let gameActive = true;
 
-    // 1. LOAD LEADERBOARD
+    // 1. LOAD LEADERBOARD (JSONP Method)
     function updateLeaderboardUI() {
-        const list = document.getElementById('leaderboard-list');
-        
-        // Direct JSONP call to Dreamlo
         const script = document.createElement('script');
         script.src = `https://dreamlo.com{PUBLIC_KEY}/jsonp/renderScores`;
         document.body.appendChild(script);
-        
         script.onload = () => document.body.removeChild(script);
     }
 
-    // Global callback for Dreamlo
+    // Global callback required by Dreamlo JSONP
     window.renderScores = function(data) {
         const list = document.getElementById('leaderboard-list');
         let entries = data?.dreamlo?.leaderboard?.entry;
@@ -93,15 +89,13 @@
         `).join('');
     };
 
-    // 2. SAVE SCORE
+    // 2. SAVE SCORE (Image Ping Method)
     function saveScore(name, finalScore) {
         const cleanName = encodeURIComponent(name.trim().substring(0, 12));
-        
-        // Direct "ping" to save the score
         const ping = new Image();
         ping.src = `https://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
         
-        // Refresh UI after save
+        // Brief delay to let the server process before refreshing UI
         setTimeout(updateLeaderboardUI, 1200);
     }
 
@@ -155,6 +149,7 @@
         nextRound();
     }
 
+    // Initialize
     updateLeaderboardUI();
     nextRound();
 </script>
