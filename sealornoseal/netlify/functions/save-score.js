@@ -1,37 +1,19 @@
-const fetch = require('node-fetch');
-
+// netlify/functions/save-score.js
 exports.handler = async (event) => {
-    if (event.httpMethod !== "POST") {
-        return { statusCode: 405, body: "Method Not Allowed" };
-    }
-
     try {
         const { name, score } = JSON.parse(event.body);
-        const PRIVATE_KEY = process.env.DREAMLO_PRIVATE_KEY;
-
-        // Fixed: Added /lb/ and the missing $ for the template literal
-        const url = `https://dreamlo.com{PRIVATE_KEY}/add/${name}/${score}`;
+        const PRIVATE_KEY = process.env.DREAMLO_PRIVATE_KEY; 
+        
+        // Note: Dreamlo uses HTTP for the free tier, sometimes HTTPS fails
+        const url = `http://dreamlo.com{PRIVATE_KEY}/add/${name}/${score}`;
         
         const response = await fetch(url);
-
-        if (!response.ok) {
-            throw new Error("Dreamlo rejected the score update");
-        }
-
+        
         return {
             statusCode: 200,
-            headers: {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            body: JSON.stringify({ message: "Score saved!" })
+            body: JSON.stringify({ message: "Saved" })
         };
-    } catch (err) {
-        console.error("Save error:", err);
-        return { 
-            statusCode: 500, 
-            headers: { "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({ error: err.toString() }) 
-        };
+    } catch (error) {
+        return { statusCode: 500, body: error.message };
     }
 };
