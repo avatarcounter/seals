@@ -9,7 +9,7 @@ let isCorrectSeal = false;
 let score = 0;
 let gameActive = true;
 
-// 1. FETCH GLOBAL SCORES (Using Public Key)
+// 1. FETCH GLOBAL SCORES
 async function updateLeaderboardUI() {
     const list = document.getElementById('leaderboard-list');
     try {
@@ -22,7 +22,7 @@ async function updateLeaderboardUI() {
         }
 
         let entries = data.dreamlo.leaderboard.entry;
-        if (!Array.isArray(entries)) entries = [entries]; // Handle single entry case
+        if (!Array.isArray(entries)) entries = [entries];
 
         list.innerHTML = entries.slice(0, 5).map(s => `
             <div class="entry">
@@ -35,7 +35,7 @@ async function updateLeaderboardUI() {
     }
 }
 
-// 2. SAVE SCORE (Using Netlify Function to hide Private Key)
+// 2. SAVE SCORE (Via Netlify Function)
 function saveScore(name, finalScore) {
     const cleanName = name.replace(/\s+/g, '').substring(0, 12);
     
@@ -45,7 +45,6 @@ function saveScore(name, finalScore) {
         body: JSON.stringify({ name: cleanName, score: finalScore })
     })
     .then(() => {
-        // Refresh the list after a short delay to allow DB update
         setTimeout(updateLeaderboardUI, 1200);
     })
     .catch(err => console.error("Save error:", err));
@@ -63,9 +62,8 @@ function nextRound() {
     const max = isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS;
     const randomNum = Math.floor(Math.random() * max) + 1;
     
-    // Formats number to 001, 002, etc.
-    const paddedNum = randomNum.toString().padStart(3, '0');
-    imgElement.src = `${folder}/${paddedNum}.${EXTENSION}`;
+    // Path logic updated for 1.jpg, 2.jpg, etc.
+    imgElement.src = `${folder}/${randomNum}.${EXTENSION}`;
 }
 
 function check(userChoice) {
@@ -87,7 +85,7 @@ function check(userChoice) {
         
         setTimeout(() => {
             if (score > 0) {
-                const name = prompt(`Streak: ${score}! Enter name for the World Leaderboard:`);
+                const name = prompt(`Streak: ${score}! Name for leaderboard:`);
                 if (name && name.trim()) saveScore(name, score);
             }
             score = 0;
@@ -97,6 +95,5 @@ function check(userChoice) {
     }
 }
 
-// Start game and load scores on page load
 updateLeaderboardUI();
 nextRound();
