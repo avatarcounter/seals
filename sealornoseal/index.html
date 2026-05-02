@@ -50,6 +50,10 @@
 </div>
 
 <script>
+    // --- CONFIGURATION ---
+    const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
+    const PRIVATE_KEY = "waBsY9hwf0urcEpwwn8rLw1Z2xYyPvZEqGdwAay68VqQ"; 
+    
     const TOTAL_SEALS = 5;    
     const TOTAL_NOSEALS = 5;  
     const EXTENSION = "jpg";  
@@ -58,56 +62,54 @@
     let score = 0;
     let gameActive = true;
 
-    async function updateLeaderboardUI() {
+    // 1. LOAD LEADERBOARD
+    function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
-        try {
-            // FIXED: Path is relative to work on seal.motorcycles/sealornoseal/
-            const response = await fetch('.netlify/functions/get-scores');
-            if (!response.ok) throw new Error("Server Error");
-            
-            const data = await response.json();
-            let entries = data?.dreamlo?.leaderboard?.entry;
-
-            if (!entries) {
-                list.innerHTML = "<div class='entry' style='justify-content:center;'>No scores yet!</div>";
-                return;
-            }
-
-            // Ensure we have an array (Dreamlo returns an object for a single entry)
-            const scoreArray = Array.isArray(entries) ? entries : [entries];
-
-            list.innerHTML = scoreArray.slice(0, 5).map(s => `
-                <div class="entry">
-                    <span>${s.name}</span>
-                    <span><strong>${s.score}</strong></span>
-                </div>
-            `).join('');
-        } catch (e) {
-            console.error("Leaderboard error:", e);
-            list.innerHTML = "<div class='entry' style='justify-content:center; color:#999;'>Leaderboard Offline</div>";
-        }
-    }
-
-    function saveScore(name, finalScore) {
-        const cleanName = name.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 12);
         
-        // FIXED: Path is relative to work on custom subdomains
-        fetch('.netlify/functions/save-score', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: cleanName, score: finalScore })
-        })
-        .then(() => {
-            setTimeout(updateLeaderboardUI, 1500);
-        })
-        .catch(err => console.error("Error saving score:", err));
+        // Direct JSONP call to Dreamlo
+        const script = document.createElement('script');
+        script.src = `https://dreamlo.com{PUBLIC_KEY}/jsonp/renderScores`;
+        document.body.appendChild(script);
+        
+        script.onload = () => document.body.removeChild(script);
     }
 
+    // Global callback for Dreamlo
+    window.renderScores = function(data) {
+        const list = document.getElementById('leaderboard-list');
+        let entries = data?.dreamlo?.leaderboard?.entry;
+
+        if (!entries) {
+            list.innerHTML = "<div class='entry' style='justify-content:center;'>No scores yet!</div>";
+            return;
+        }
+
+        const scoreArray = Array.isArray(entries) ? entries : [entries];
+        list.innerHTML = scoreArray.slice(0, 5).map(s => `
+            <div class="entry">
+                <span>${s.name}</span>
+                <span><strong>${s.score}</strong></span>
+            </div>
+        `).join('');
+    };
+
+    // 2. SAVE SCORE
+    function saveScore(name, finalScore) {
+        const cleanName = encodeURIComponent(name.trim().substring(0, 12));
+        
+        // Direct "ping" to save the score
+        const ping = new Image();
+        ping.src = `https://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
+        
+        // Refresh UI after save
+        setTimeout(updateLeaderboardUI, 1200);
+    }
+
+    // 3. GAME LOGIC
     function nextRound() {
         gameActive = true;
-        const feedback = document.getElementById('feedback');
+        document.getElementById('feedback').innerText = "";
         const imgElement = document.getElementById('display-img');
-        feedback.innerText = "";
         
         isCorrectSeal = Math.random() < 0.5;
         const folder = isCorrectSeal ? "seal" : "noseal";
@@ -153,7 +155,6 @@
         nextRound();
     }
 
-    // Initialize both
     updateLeaderboardUI();
     nextRound();
 </script>
