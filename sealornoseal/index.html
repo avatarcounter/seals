@@ -24,7 +24,7 @@
             <button onclick="check(true)">Seal</button>
             <button onclick="check(false)" style="background:#ff9800">Sea Lion</button>
         </div>
-        <div id="feedback"></div>
+        <div id="feedback" style="height: 20px; margin: 10px 0; font-weight: bold;"></div>
         <div id="leaderboard">
             <h3>🏆 Top Streaks</h3>
             <div id="leaderboard-list">Loading scores...</div>
@@ -39,32 +39,29 @@
     let isCorrectSeal = false;
     let gameActive = true;
 
-    // This must match the callback name in the URL
-    window.renderScores = function(data) {
-        const list = document.getElementById('leaderboard-list');
-        const entries = data?.dreamlo?.leaderboard?.entry;
-        if (!entries) {
-            list.innerHTML = "No scores yet!";
-            return;
-        }
-        const scoreArray = Array.isArray(entries) ? entries : [entries];
-        list.innerHTML = scoreArray.slice(0, 5).map(s => `
-            <div class="entry"><span>${s.name}</span><strong>${s.score}</strong></div>
-        `).join('');
-    };
-
     async function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
-        // We use JSONP through AllOrigins to turn HTTP script into HTTPS
-        const target = `http://dreamlo.com{PUBLIC_KEY}/jsonp?callback=renderScores`;
-        const proxy = `https://allorigins.win{encodeURIComponent(target)}&ts=${Date.now()}`;
+        // Fixed syntax using ${} and correct dreamlo path
+        const target = `http://dreamlo.com{PUBLIC_KEY}/json`;
+        const proxy = `https://corsproxy.io{encodeURIComponent(target)}&cachebust=${Date.now()}`;
 
         try {
             const response = await fetch(proxy);
+            if (!response.ok) throw new Error('Proxy error');
             const data = await response.json();
-            // This safely executes the Dreamlo script content in your browser
-            eval(data.contents); 
+            const entries = data?.dreamlo?.leaderboard?.entry;
+            
+            if (!entries) {
+                list.innerHTML = "No scores yet!";
+                return;
+            }
+            
+            const scoreArray = Array.isArray(entries) ? entries : [entries];
+            list.innerHTML = scoreArray.slice(0, 5).map(s => `
+                <div class="entry"><span>${s.name}</span><strong>${s.score}</strong></div>
+            `).join('');
         } catch (err) {
+            console.error("Board load failed:", err);
             list.innerHTML = "Leaderboard error.";
         }
     }
@@ -72,9 +69,13 @@
     async function saveScore(name, finalScore) {
         const cleanName = encodeURIComponent(name.trim().substring(0, 10));
         const target = `http://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
-        // Save via HTTPS proxy
-        await fetch(`https://allorigins.win{encodeURIComponent(target)}`);
-        setTimeout(updateLeaderboardUI, 1500);
+        
+        try {
+            await fetch(`https://corsproxy.io{encodeURIComponent(target)}`);
+            setTimeout(updateLeaderboardUI, 1500);
+        } catch (err) {
+            console.error("Save failed:", err);
+        }
     }
 
     function nextRound() {
@@ -82,21 +83,27 @@
         document.getElementById('feedback').innerText = "";
         isCorrectSeal = Math.random() < 0.5;
         const folder = isCorrectSeal ? "seal" : "noseal";
-        document.getElementById('display-img').src = `${folder}/${Math.floor(Math.random() * 5) + 1}.jpg`;
+        const randomNum = Math.floor(Math.random() * 5) + 1;
+        document.getElementById('display-img').src = `${folder}/${randomNum}.jpg`;
     }
 
     function check(userChoice) {
         if (!gameActive) return;
         gameActive = false;
+        const fb = document.getElementById('feedback');
+        
         if (userChoice === isCorrectSeal) {
             score++;
             document.getElementById('correct-count').innerText = score;
+            fb.innerText = "Correct! 🌊";
+            fb.style.color = "green";
             setTimeout(nextRound, 800);
         } else {
-            document.getElementById('feedback').innerText = "Game Over!";
+            fb.innerText = "Game Over!";
+            fb.style.color = "red";
             setTimeout(() => {
                 if (score > 0) {
-                    const name = prompt(`Streak: ${score}! Name:`);
+                    const name = prompt(`Streak: ${score}! Enter your name:`);
                     if (name) saveScore(name, score);
                 }
                 score = 0;
