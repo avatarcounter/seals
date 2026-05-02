@@ -1,6 +1,5 @@
 [build]
   publish = "seals/sealornoseal"
 
-[functions]
- 
-  directory = "netlify/functions"
+[build]
+  publish = "sealornoseal"
