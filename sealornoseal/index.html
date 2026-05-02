@@ -1,3 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seal or Sea Lion?</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #e0f2f1; text-align: center; padding: 20px; margin: 0; }
+        .game-container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .image-frame { width: 100%; height: 300px; margin: 20px 0; border-radius: 10px; overflow: hidden; background: #eee; position: relative; }
+        #display-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        /* Fallback for broken/missing images */
+        #display-img:after { content: "Image not found 😢 \A Check folder structure!"; display: flex; justify-content: center; align-items: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ddd; white-space: pre; text-align: center; color: #555; }
+
+        .controls { display: flex; gap: 10px; justify-content: center; }
+        .btn { padding: 15px 30px; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; transition: transform 0.1s; }
+        .btn:active { transform: scale(0.95); }
+        .seal-btn { background: #2980b9; }
+        .noseal-btn { background: #8e44ad; }
+        
+        .score-board { font-size: 1.2rem; color: #555; margin-bottom: 10px; }
+        #feedback { margin: 15px; font-weight: bold; height: 1.5em; min-height: 24px; }
+        
+        .leaderboard { margin-top: 30px; border-top: 2px solid #eee; padding-top: 15px; }
+        .entry { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
+        .entry:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>Seal or No Seal?</h1>
+    <p>Is this a real Seal or a Sea Lion?</p>
+
+    <div class="score-board">
+        Current Streak: <span id="correct-count">0</span>
+    </div>
+
+    <div class="image-frame">
+        <img id="display-img" src="" alt="Game Image">
+    </div>
+
+    <div class="controls">
+        <button onclick="check(true)" class="btn seal-btn">Seal</button>
+        <button onclick="check(false)" class="btn noseal-btn">Sea Lion</button>
+    </div>
+
+    <div id="feedback"></div>
+
+    <div class="leaderboard">
+        <h3>Top 5 Streaks</h3>
+        <div id="leaderboard-list">Loading...</div>
+    </div>
+</div>
+
 <script>
     // --- CONFIGURATION ---
     const TOTAL_SEALS = 5;    
@@ -9,16 +65,16 @@
     let score = 0;
     let gameActive = true;
 
-    // 1. FETCH GLOBAL SCORES (via your get-scores function)
+    // 1. FETCH SCORES (With Offline Fallback)
     async function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
         try {
-            // This calls your own server-side function to avoid SSL errors
             const response = await fetch('/.netlify/functions/get-scores');
-            const data = await response.json();
+            if (!response.ok) throw new Error("Offline");
             
+            const data = await response.json();
             if (!data?.dreamlo?.leaderboard?.entry) {
-                list.innerText = "Be the first to score!";
+                list.innerHTML = "<div class='entry'><span>Be the first!</span></div>";
                 return;
             }
 
@@ -32,25 +88,22 @@
                 </div>
             `).join('');
         } catch (e) {
-            list.innerText = "Leaderboard currently offline.";
-            console.error("Leaderboard Error:", e);
+            // SAFE FALLBACK so game doesn't break
+            list.innerHTML = "<div class='entry' style='justify-content:center; color:#999;'>Leaderboard Offline (Local Mode)</div>";
         }
     }
 
-    // 2. SAVE SCORE (via your save-score function)
+    // 2. SAVE SCORE (With Safe Fail)
     function saveScore(name, finalScore) {
-        const cleanName = name.replace(/\s+/g, '').substring(0, 12);
+        const cleanName = name.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 12);
         
         fetch('/.netlify/functions/save-score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: cleanName, score: finalScore })
         })
-        .then(() => {
-            // Refresh the list after a short delay
-            setTimeout(updateLeaderboardUI, 1500);
-        })
-        .catch(err => console.error("Save error:", err));
+        .then(() => setTimeout(updateLeaderboardUI, 1500))
+        .catch(() => console.log("Score not saved (Offline mode)"));
     }
 
     // 3. GAME LOGIC
@@ -62,11 +115,14 @@
         
         isCorrectSeal = Math.random() < 0.5;
         const folder = isCorrectSeal ? "seal" : "noseal";
-        const max = isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS;
-        const randomNum = Math.floor(Math.random() * max) + 1;
+        // Ensure we don't get 0 by using Math.floor + 1
+        const randomNum = Math.floor(Math.random() * (isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS)) + 1;
         
-        // Uses your 1.jpg, 2.jpg naming pattern
+        // Set the image source
         imgElement.src = `${folder}/${randomNum}.${EXTENSION}`;
+        
+        // Debug helper: logs what image it's trying to find
+        console.log(`Looking for image at: ${imgElement.src}`);
     }
 
     function check(userChoice) {
@@ -83,22 +139,35 @@
             feedback.style.color = "#27ae60";
             setTimeout(nextRound, 1000);
         } else {
-            feedback.innerText = `Game Over! That was a ${isCorrectSeal ? "Seal" : "Sea Lion"}.`;
+            const actualName = isCorrectSeal ? "Seal" : "Sea Lion";
+            feedback.innerText = `Game Over! That was a ${actualName}.`;
             feedback.style.color = "#c0392b";
             
             setTimeout(() => {
                 if (score > 0) {
-                    const name = prompt(`Streak: ${score}! Name for leaderboard:`);
-                    if (name && name.trim()) saveScore(name, score);
+                    // Small delay to let the UI update before alert
+                    setTimeout(() => {
+                        const name = prompt(`Streak: ${score}! Name for leaderboard:`);
+                        if (name && name.trim()) saveScore(name, score);
+                        resetGame();
+                    }, 100);
+                } else {
+                    resetGame();
                 }
-                score = 0;
-                scoreDisplay.innerText = 0;
-                nextRound();
             }, 1000);
         }
     }
 
-    // Initialise on load
+    function resetGame() {
+        score = 0;
+        document.getElementById('correct-count').innerText = 0;
+        nextRound();
+    }
+
+    // Start everything
     updateLeaderboardUI();
     nextRound();
 </script>
+
+</body>
+</html>
