@@ -1,7 +1,6 @@
 [build]
-  # This tells Netlify where your HTML lives
-  publish = "seal/sealornoseal"
+  publish = "seals/sealornoseal"
 
 [functions]
-  # This tells Netlify where your JavaScript functions live
+ 
   directory = "netlify/functions"
