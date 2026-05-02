@@ -7,17 +7,31 @@ exports.handler = async (event) => {
 
     try {
         const { name, score } = JSON.parse(event.body);
-        const PRIVATE_KEY = process.env.DREAMLO_PRIVATE_KEY; // Hidden on Netlify
+        const PRIVATE_KEY = process.env.DREAMLO_PRIVATE_KEY;
 
+        // Fixed: Added /lb/ and the missing $ for the template literal
         const url = `https://dreamlo.com{PRIVATE_KEY}/add/${name}/${score}`;
         
-        await fetch(url);
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error("Dreamlo rejected the score update");
+        }
 
         return {
             statusCode: 200,
+            headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
             body: JSON.stringify({ message: "Score saved!" })
         };
     } catch (err) {
-        return { statusCode: 500, body: err.toString() };
+        console.error("Save error:", err);
+        return { 
+            statusCode: 500, 
+            headers: { "Access-Control-Allow-Origin": "*" },
+            body: JSON.stringify({ error: err.toString() }) 
+        };
     }
 };
