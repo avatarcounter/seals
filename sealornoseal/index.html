@@ -9,17 +9,14 @@
         .game-container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .image-frame { width: 100%; height: 300px; margin: 20px 0; border-radius: 10px; overflow: hidden; background: #eee; position: relative; }
         #display-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        #display-img:after { content: "Image not found 😢 \A Check folder structure!"; display: flex; justify-content: center; align-items: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ddd; white-space: pre; text-align: center; color: #555; }
         .controls { display: flex; gap: 10px; justify-content: center; }
-        .btn { padding: 15px 30px; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; transition: transform 0.1s; }
-        .btn:active { transform: scale(0.95); }
+        .btn { padding: 15px 30px; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; }
         .seal-btn { background: #2980b9; }
         .noseal-btn { background: #8e44ad; }
         .score-board { font-size: 1.2rem; color: #555; margin-bottom: 10px; }
-        #feedback { margin: 15px; font-weight: bold; height: 1.5em; min-height: 24px; }
+        #feedback { margin: 15px; font-weight: bold; height: 1.5em; }
         .leaderboard { margin-top: 30px; border-top: 2px solid #eee; padding-top: 15px; }
         .entry { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
-        .entry:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
@@ -27,22 +24,13 @@
 <div class="game-container">
     <h1>Seal or No Seal?</h1>
     <p>Is this a real Seal or a Sea Lion?</p>
-
-    <div class="score-board">
-        Current Streak: <span id="correct-count">0</span>
-    </div>
-
-    <div class="image-frame">
-        <img id="display-img" src="" alt="Game Image">
-    </div>
-
+    <div class="score-board">Current Streak: <span id="correct-count">0</span></div>
+    <div class="image-frame"><img id="display-img" src="" alt="Game Image"></div>
     <div class="controls">
         <button onclick="check(true)" class="btn seal-btn">Seal</button>
         <button onclick="check(false)" class="btn noseal-btn">Sea Lion</button>
     </div>
-
     <div id="feedback"></div>
-
     <div class="leaderboard">
         <h3>Top 5 Streaks</h3>
         <div id="leaderboard-list">Loading...</div>
@@ -50,109 +38,76 @@
 </div>
 
 <script>
-    // --- CONFIGURATION ---
     const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
     const PRIVATE_KEY = "waBsY9hwf0urcEpwwn8rLw1Z2xYyPvZEqGdwAay68VqQ"; 
     
-    const TOTAL_SEALS = 5;    
-    const TOTAL_NOSEALS = 5;  
-    const EXTENSION = "jpg";  
-
     let isCorrectSeal = false;
     let score = 0;
     let gameActive = true;
 
-    // 1. LOAD LEADERBOARD (JSONP Method)
     function updateLeaderboardUI() {
         const script = document.createElement('script');
-        script.src = `https://dreamlo.com{PUBLIC_KEY}/jsonp/renderScores`;
+        // This proxy allows HTTPS sites to talk to HTTP Dreamlo
+        const target = `http://dreamlo.com{PUBLIC_KEY}/jsonp/renderScores`;
+        script.src = `https://allorigins.win{encodeURIComponent(target)}`;
         document.body.appendChild(script);
         script.onload = () => document.body.removeChild(script);
     }
 
-    // Global callback required by Dreamlo JSONP
     window.renderScores = function(data) {
         const list = document.getElementById('leaderboard-list');
         let entries = data?.dreamlo?.leaderboard?.entry;
-
-        if (!entries) {
-            list.innerHTML = "<div class='entry' style='justify-content:center;'>No scores yet!</div>";
-            return;
-        }
-
+        if (!entries) return list.innerHTML = "No scores yet!";
         const scoreArray = Array.isArray(entries) ? entries : [entries];
         list.innerHTML = scoreArray.slice(0, 5).map(s => `
-            <div class="entry">
-                <span>${s.name}</span>
-                <span><strong>${s.score}</strong></span>
-            </div>
+            <div class="entry"><span>${s.name}</span><span><strong>${s.score}</strong></span></div>
         `).join('');
     };
 
-    // 2. SAVE SCORE (Image Ping Method)
     function saveScore(name, finalScore) {
         const cleanName = encodeURIComponent(name.trim().substring(0, 12));
         const ping = new Image();
-        ping.src = `https://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
-        
-        // Brief delay to let the server process before refreshing UI
-        setTimeout(updateLeaderboardUI, 1200);
+        const target = `http://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
+        ping.src = `https://allorigins.win{encodeURIComponent(target)}`;
+        setTimeout(updateLeaderboardUI, 1500);
     }
 
-    // 3. GAME LOGIC
     function nextRound() {
         gameActive = true;
         document.getElementById('feedback').innerText = "";
-        const imgElement = document.getElementById('display-img');
-        
+        const img = document.getElementById('display-img');
         isCorrectSeal = Math.random() < 0.5;
         const folder = isCorrectSeal ? "seal" : "noseal";
-        const total = isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS;
-        const randomNum = Math.floor(Math.random() * total) + 1;
-        
-        imgElement.src = `${folder}/${randomNum}.${EXTENSION}`;
+        img.src = `${folder}/${Math.floor(Math.random() * 5) + 1}.jpg`;
     }
 
     function check(userChoice) {
         if (!gameActive) return;
         gameActive = false;
-
         const feedback = document.getElementById('feedback');
-        const scoreDisplay = document.getElementById('correct-count');
-        
         if (userChoice === isCorrectSeal) {
             score++;
-            scoreDisplay.innerText = score;
+            document.getElementById('correct-count').innerText = score;
             feedback.innerText = "Correct! 🌊";
             feedback.style.color = "#27ae60";
             setTimeout(nextRound, 1000);
         } else {
-            const actualName = isCorrectSeal ? "Seal" : "Sea Lion";
-            feedback.innerText = `Game Over! That was a ${actualName}.`;
+            feedback.innerText = `Game Over! That was a ${isCorrectSeal ? "Seal" : "Sea Lion"}.`;
             feedback.style.color = "#c0392b";
-            
             setTimeout(() => {
                 if (score > 0) {
-                    const name = prompt(`Streak: ${score}! Name for leaderboard:`);
-                    if (name && name.trim()) {
-                        saveScore(name, score);
-                    }
+                    const name = prompt(`Streak: ${score}! Name:`);
+                    if (name) saveScore(name, score);
                 }
-                resetGame();
+                score = 0;
+                document.getElementById('correct-count').innerText = 0;
+                nextRound();
             }, 1200);
         }
     }
 
-    function resetGame() {
-        score = 0;
-        document.getElementById('correct-count').innerText = 0;
-        nextRound();
-    }
-
-    // Initialize
     updateLeaderboardUI();
     nextRound();
 </script>
-
 </body>
 </html>
