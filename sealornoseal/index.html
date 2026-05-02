@@ -61,7 +61,7 @@
     async function updateLeaderboardUI() {
     const list = document.getElementById('leaderboard-list');
     try {
-        const response = await fetch('/.netlify/functions/get-scores')
+        const response = await fetch('.netlify/functions/get-scores');
         const data = await response.json();
         
         // This safely checks the path data.dreamlo.leaderboard.entry
