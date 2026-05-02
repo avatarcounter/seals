@@ -32,6 +32,7 @@
     </div>
 
 <script>
+    // Replace these with your actual keys from dreamlo.com
     const PUBLIC_KEY = "69f639198f40bb1068bb7e9f";
     const PRIVATE_KEY = "sd5R64xJFk-QcSzJ1xksigJKrrGaD6X0qzcxLnnpa2mw";
  
@@ -41,14 +42,17 @@
 
     async function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
-        // Fixed syntax using ${} and correct dreamlo path
-        const target = `http://dreamlo.com{PUBLIC_KEY}/json`;
-        const proxy = `https://corsproxy.io{encodeURIComponent(target)}&cachebust=${Date.now()}`;
+        // Constructing the target URL with the /lb/ path and format extension
+        const target = `https://dreamlo.com{PUBLIC_KEY}/json`;
+        // Using the recommended ?url= format for CorsProxy.io
+        const proxy = `https://corsproxy.io{encodeURIComponent(target)}&cb=${Date.now()}`;
 
         try {
             const response = await fetch(proxy);
             if (!response.ok) throw new Error('Proxy error');
             const data = await response.json();
+            
+            // Dreamlo wraps entries in dreamlo.leaderboard.entry
             const entries = data?.dreamlo?.leaderboard?.entry;
             
             if (!entries) {
@@ -68,11 +72,13 @@
 
     async function saveScore(name, finalScore) {
         const cleanName = encodeURIComponent(name.trim().substring(0, 10));
-        const target = `http://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
+        const target = `https://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
+        const proxy = `https://corsproxy.io{encodeURIComponent(target)}`;
         
         try {
-            await fetch(`https://corsproxy.io{encodeURIComponent(target)}`);
-            setTimeout(updateLeaderboardUI, 1500);
+            await fetch(proxy);
+            // Wait 1 second before refreshing UI to ensure the server has updated
+            setTimeout(updateLeaderboardUI, 1000);
         } catch (err) {
             console.error("Save failed:", err);
         }
@@ -113,6 +119,7 @@
         }
     }
 
+    // Initial load
     updateLeaderboardUI();
     nextRound();
 </script>
