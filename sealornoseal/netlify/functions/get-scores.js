@@ -4,11 +4,6 @@ exports.handler = async () => {
 
     try {
         const response = await fetch(url);
-        
-        if (!response.ok) {
-            return { statusCode: response.status, body: "Dreamlo Error" };
-        }
-
         const data = await response.json();
 
         return {
