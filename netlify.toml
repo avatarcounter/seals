@@ -1,0 +1,4 @@
+[build]
+  base = "sealornoseal"
+  publish = "."
+  functions = "netlify/functions"
