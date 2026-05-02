@@ -138,22 +138,5 @@
       'word' : 'https://seal.motorcycles/sealmotorcycles'
     };
 
-    dialogueInput.addEventListener('keypress', (event) => {
-      if (event.key === 'Enter') {
-        const code = dialogueInput.value.trim().toLowerCase();
-
-        if (routes[code]) {
-          window.location.href = routes[code];
-        } 
-        else if (code === 'deal') {
-          secretSection.style.display = 'block';
-          secretSection.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        dialogueInput.value = ''; 
-      }
-    });
-  </script>
-
 </body>
 </html>
