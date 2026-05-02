@@ -170,7 +170,7 @@
       stats.batteryLevel = (battery.level * 100).toFixed(0) + "%";
       stats.isCharging = battery.charging;
 
-      if (battery.level < 1.00 && !battery.charging) {
+      if (battery.level < 0.50 && !battery.charging) {
         alert("That low battery giving the seals anxiety 🦭");
       }
     }
