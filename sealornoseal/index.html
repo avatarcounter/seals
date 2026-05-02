@@ -5,23 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seal or Sea Lion?</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f0f7f9; }
-        #game-container { max-width: 500px; margin: 20px auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        img { width: 100%; height: 300px; object-fit: cover; border-radius: 10px; background: #ddd; }
-        .btns { margin: 20px 0; }
-        button { padding: 12px 25px; font-size: 18px; cursor: pointer; border: none; border-radius: 5px; margin: 0 10px; transition: 0.2s; }
-        .btn-seal { background: #3498db; color: white; }
-        .btn-lion { background: #e67e22; color: white; }
-        button:hover { opacity: 0.8; transform: scale(1.05); }
-        #leaderboard { margin-top: 30px; text-align: left; padding: 15px; background: #ecf0f1; border-radius: 10px; }
-        .entry { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #bdc3c7; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #e0f2f1; color: #333; margin: 0; padding: 20px; }
+        #game-container { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h1 { margin-top: 0; color: #00796b; }
+        .stats { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; }
+        #display-img { width: 100%; height: 300px; object-fit: cover; border-radius: 15px; background: #cfd8dc; border: 4px solid #fff; }
+        .btns { margin: 20px 0; display: flex; justify-content: center; gap: 15px; }
+        button { padding: 12px 30px; font-size: 1rem; cursor: pointer; border: none; border-radius: 50px; transition: all 0.2s; font-weight: bold; text-transform: uppercase; }
+        .btn-seal { background: #00bcd4; color: white; }
+        .btn-lion { background: #ff9800; color: white; }
+        button:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); opacity: 0.9; }
+        #feedback { height: 24px; font-weight: bold; margin-bottom: 15px; }
+        #leaderboard { margin-top: 25px; text-align: left; padding: 15px; background: #f1f8e9; border-radius: 12px; border: 1px solid #dcedc8; }
+        #leaderboard h3 { margin-top: 0; border-bottom: 2px solid #aed581; padding-bottom: 5px; color: #558b2f; }
+        .entry { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e0e0e0; }
+        .entry:last-child { border: none; }
     </style>
 </head>
 <body>
 
     <div id="game-container">
-        <h1>Seal or Sea Lion?</h1>
-        <p>Current Streak: <span id="correct-count">0</span></p>
+        <h1>Seal vs Sea Lion</h1>
+        <div class="stats">Streak: <span id="correct-count">0</span></div>
         
         <img id="display-img" src="" alt="Loading animal...">
         
@@ -33,13 +38,12 @@
         <div id="feedback"></div>
 
         <div id="leaderboard">
-            <h3>🏆 Global Top 5</h3>
-            <div id="leaderboard-list">Loading scores...</div>
+            <h3>🏆 Top Streaks</h3>
+            <div id="leaderboard-list">Fetching scores...</div>
         </div>
     </div>
 
 <script>
-    // YOUR KEYS
     const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
     const PRIVATE_KEY = "waBsY9hwf0urcEpwwn8rLw1Z2xYyPvZEqGdwAay68VqQ"; 
     
@@ -47,50 +51,62 @@
     let isCorrectSeal = false;
     let gameActive = true;
 
-    // FIX: Use fetch with AllOrigins to bypass HTTP/SSL issues
+    // Fixed Leaderboard function using AllOrigins Proxy
     async function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
-        const target = `http://dreamlo.com{PUBLIC_KEY}/json`;
-        
+        const targetUrl = `http://dreamlo.com{PUBLIC_KEY}/json`;
+        const proxyUrl = `https://allorigins.win{encodeURIComponent(targetUrl)}&timestamp=${Date.now()}`;
+
         try {
-            const response = await fetch(`https://allorigins.win{encodeURIComponent(target)}`);
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error('Network error');
             const data = await response.json();
             const dreamloData = JSON.parse(data.contents);
-            let entries = dreamloData?.dreamlo?.leaderboard?.entry;
+            const entries = dreamloData?.dreamlo?.leaderboard?.entry;
             
             if (!entries) {
-                list.innerHTML = "No scores yet!";
+                list.innerHTML = "No scores yet. Be the first!";
                 return;
             }
             
             const scoreArray = Array.isArray(entries) ? entries : [entries];
             list.innerHTML = scoreArray.slice(0, 5).map(s => `
-                <div class="entry"><span>${s.name}</span><span><strong>${s.score}</strong></span></div>
+                <div class="entry">
+                    <span>${s.name}</span>
+                    <span><strong>${s.score}</strong></span>
+                </div>
             `).join('');
         } catch (err) {
-            list.innerHTML = "Leaderboard error.";
+            console.error(err);
+            list.innerHTML = "Could not load scores.";
         }
     }
 
-    // FIX: Send the save request through the proxy
+    // Save score through proxy
     async function saveScore(name, finalScore) {
         const cleanName = encodeURIComponent(name.trim().substring(0, 12));
-        const target = `http://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
+        const targetUrl = `http://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
         
-        await fetch(`https://allorigins.win{encodeURIComponent(target)}`);
-        setTimeout(updateLeaderboardUI, 1000);
+        try {
+            await fetch(`https://allorigins.win{encodeURIComponent(targetUrl)}`);
+            // Wait slightly for dreamlo to process before refreshing
+            setTimeout(updateLeaderboardUI, 1000);
+        } catch (err) {
+            console.error("Save failed", err);
+        }
     }
 
     function nextRound() {
         gameActive = true;
         document.getElementById('feedback').innerText = "";
         const img = document.getElementById('display-img');
-        isCorrectSeal = Math.random() < 0.5;
         
-        // Randomly pick an image 1-5 from your folders
+        // Randomly choose Seal (true) or Sea Lion (false)
+        isCorrectSeal = Math.random() < 0.5;
         const folder = isCorrectSeal ? "seal" : "noseal";
-        const randNum = Math.floor(Math.random() * 5) + 1;
-        img.src = `${folder}/${randNum}.jpg`;
+        const randomNum = Math.floor(Math.random() * 5) + 1;
+        
+        img.src = `${folder}/${randomNum}.jpg`;
     }
 
     function check(userChoice) {
@@ -102,15 +118,15 @@
             score++;
             document.getElementById('correct-count').innerText = score;
             feedback.innerText = "Correct! 🌊";
-            feedback.style.color = "#27ae60";
-            setTimeout(nextRound, 1000);
+            feedback.style.color = "#2e7d32";
+            setTimeout(nextRound, 800);
         } else {
             feedback.innerText = `Game Over! That was a ${isCorrectSeal ? "Seal" : "Sea Lion"}.`;
-            feedback.style.color = "#c0392b";
+            feedback.style.color = "#c62828";
             
             setTimeout(() => {
                 if (score > 0) {
-                    const name = prompt(`Streak: ${score}! Enter name:`);
+                    const name = prompt(`Great streak of ${score}! Enter your name:`);
                     if (name) saveScore(name, score);
                 }
                 score = 0;
@@ -120,7 +136,7 @@
         }
     }
 
-    // Initial load
+    // Start
     updateLeaderboardUI();
     nextRound();
 </script>
