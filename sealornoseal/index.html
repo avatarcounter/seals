@@ -38,11 +38,9 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
         const TOTAL_SEALS = 5;    
         const TOTAL_NOSEALS = 5;  
         const EXTENSION = "jpg";  
-        // ---------------------
 
         let isCorrectSeal = false;
 
@@ -53,27 +51,19 @@
             feedback.innerText = "";
             imgElement.alt = "Loading...";
 
-            // Randomly decide folder (seal or noseal)
             isCorrectSeal = Math.random() < 0.5;
             const folder = isCorrectSeal ? "seal" : "noseal";
             const max = isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS;
             
-            // Generate random number
             const randomNum = Math.floor(Math.random() * max) + 1;
+            const finalPath = `${folder}/${randomNum}.${EXTENSION}`;
             
-            // Construct path: e.g., "noseal/1.jpg"
-            const finalPath = folder + "/" + randomNum + "." + EXTENSION;
-            
-            // Debugger: Press F12 in your browser to see this!
-            console.log("Current Round Path: " + finalPath);
-            
+            console.log("Looking for: " + finalPath);
             imgElement.src = finalPath;
 
-            // Handle failed loads
             imgElement.onerror = function() {
-                console.error("FAILED TO LOAD: " + finalPath);
-                feedback.innerText = "Error loading " + finalPath;
-                feedback.style.color = "#c0392b";
+                feedback.innerText = `⚠️ Missing: ${finalPath}`;
+                feedback.style.color = "#e67e22";
             };
         }
 
@@ -84,15 +74,13 @@
                 feedback.innerText = "Correct! 🌊";
                 feedback.style.color = "#27ae60";
             } else {
-                feedback.innerText = "Nope! That's a " + (isCorrectSeal ? "Seal" : "Sea Lion");
+                feedback.innerText = `Nope! That's a ${isCorrectSeal ? "Seal" : "Sea Lion"}`;
                 feedback.style.color = "#c0392b";
             }
             
-            // Wait 1.5 seconds then load next
             setTimeout(nextRound, 1500);
         }
 
-        // Initialize total count and start game
         document.getElementById('total-count').innerText = TOTAL_SEALS + TOTAL_NOSEALS;
         nextRound();
     </script>
