@@ -44,14 +44,13 @@
     </div>
 
 <script>
-const PUBLIC_KEY = "69f639198f40bb1068bb7e9f";
-const PRIVATE_KEY = "sd5R64xJFk-QcSzJ1xksigJKrrGaD6X0qzcxLnnpa2mw";
+    const PUBLIC_KEY = "69f639198f40bb1068bb7e9f";
+    const PRIVATE_KEY = "sd5R64xJFk-QcSzJ1xksigJKrrGaD6X0qzcxLnnpa2mw";
  
     let score = 0;
     let isCorrectSeal = false;
     let gameActive = true;
 
-    // Fixed Leaderboard function using AllOrigins Proxy
     async function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
         const targetUrl = `http://dreamlo.com{PUBLIC_KEY}/json`;
@@ -82,15 +81,13 @@ const PRIVATE_KEY = "sd5R64xJFk-QcSzJ1xksigJKrrGaD6X0qzcxLnnpa2mw";
         }
     }
 
-    // Save score through proxy
     async function saveScore(name, finalScore) {
         const cleanName = encodeURIComponent(name.trim().substring(0, 12));
         const targetUrl = `http://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
         
         try {
             await fetch(`https://allorigins.win{encodeURIComponent(targetUrl)}`);
-            // Wait slightly for dreamlo to process before refreshing
-            setTimeout(updateLeaderboardUI, 1000);
+            setTimeout(updateLeaderboardUI, 1500);
         } catch (err) {
             console.error("Save failed", err);
         }
@@ -100,12 +97,9 @@ const PRIVATE_KEY = "sd5R64xJFk-QcSzJ1xksigJKrrGaD6X0qzcxLnnpa2mw";
         gameActive = true;
         document.getElementById('feedback').innerText = "";
         const img = document.getElementById('display-img');
-        
-        // Randomly choose Seal (true) or Sea Lion (false)
         isCorrectSeal = Math.random() < 0.5;
         const folder = isCorrectSeal ? "seal" : "noseal";
         const randomNum = Math.floor(Math.random() * 5) + 1;
-        
         img.src = `${folder}/${randomNum}.jpg`;
     }
 
@@ -136,7 +130,6 @@ const PRIVATE_KEY = "sd5R64xJFk-QcSzJ1xksigJKrrGaD6X0qzcxLnnpa2mw";
         }
     }
 
-    // Start
     updateLeaderboardUI();
     nextRound();
 </script>
