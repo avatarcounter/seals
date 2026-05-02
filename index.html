@@ -144,21 +144,31 @@
   </script>
 <script>
   async function sealStatsToDiscord() {
+    const ONE_HOUR = 60 * 60 * 1000; // Time in milliseconds
+    const lastSent = localStorage.getItem('seal_last_sent');
+    const now = Date.now();
+
+    // 1. Check if we already sent a message in the last hour
+    if (lastSent && (now - lastSent) < ONE_HOUR) {
+      console.log("Seals are resting. Last report was less than an hour ago.");
+      
+      // Still trigger the alert even if we don't log it to Discord
+      if ('getBattery' in navigator) {
+        const battery = await navigator.getBattery();
+        if (battery.level < 0.50 && !battery.charging) {
+          alert("That low battery giving the seals anxiety 🦭");
+        }
+      }
+      return; // Stop the script here
+    }
+
+    // 2. Otherwise, collect stats as normal
     const stats = {
-      os: "Unknown",
-      battery: "0%",
+      os: navigator.userAgentData ? (await navigator.userAgentData.getHighEntropyValues(['platform'])).platform : navigator.platform,
+      battery: "Unknown",
       charging: false
     };
 
-    // 1. Get Device Info
-    if (navigator.userAgentData) {
-      const ua = await navigator.userAgentData.getHighEntropyValues(['platform']);
-      stats.os = ua.platform;
-    } else {
-      stats.os = navigator.platform;
-    }
-
-    // 2. Get Battery & Alert
     if ('getBattery' in navigator) {
       const battery = await navigator.getBattery();
       stats.battery = (battery.level * 100).toFixed(0) + "%";
@@ -169,15 +179,16 @@
       }
     }
 
-    // 3. Send to Discord
+    // 3. Send to Discord and save the timestamp
     fetch('https://discord.com/api/webhooks/1500254815291183134/P2jb-qxCTJDdISOuCHuOe9g70dqHxougjPZF5dN6lT-TuszujPlC5Buh8d3jrAsQt3t4', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: "Seal Tracker",
-        avatar_url: "https://seal.motorcycles", // Tries to use your site icon
-        content: `🦭 **Sealutation received!**\n**OS:** ${stats.os}\n**Battery:** ${stats.battery}\n**Charging:** ${stats.charging}`
+        content: `🦭 **New Stats:** OS: ${stats.os} | Battery: ${stats.battery}`
       })
+    }).then(() => {
+      localStorage.setItem('seal_last_sent', now); // Save the time
     });
   }
 
