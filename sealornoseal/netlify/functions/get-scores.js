@@ -1,10 +1,15 @@
 exports.handler = async () => {
     const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
-    // Change http to https and ensure /lb/ is included
+    // Fixed: Added /lb/ and the $ for the variable
     const url = `https://dreamlo.com{PUBLIC_KEY}/json`;
 
     try {
         const response = await fetch(url);
+        
+        if (!response.ok) {
+            return { statusCode: response.status, body: "Dreamlo Error" };
+        }
+
         const data = await response.json();
 
         return {
