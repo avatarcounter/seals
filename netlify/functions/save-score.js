@@ -1,19 +1,19 @@
+// netlify/functions/save-score.js
 exports.handler = async (event) => {
-    const PRIVATE_KEY = process.env.DREAMLO_PRIVATE_KEY;
-    const { name, score } = JSON.parse(event.body);
-    // Change http to https
-    const url = `https://dreamlo.com{PRIVATE_KEY}/add/${name}/${score}`;
-
     try {
+        const { name, score } = JSON.parse(event.body);
+        const PRIVATE_KEY = process.env.DREAMLO_PRIVATE_KEY; 
+        
+        // Note: Dreamlo uses HTTP for the free tier, sometimes HTTPS fails
+        const url = `http://dreamlo.com{PRIVATE_KEY}/add/${name}/${score}`;
+        
         const response = await fetch(url);
+        
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: "Score saved!" })
+            body: JSON.stringify({ message: "Saved" })
         };
     } catch (error) {
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: error.message })
-        };
+        return { statusCode: 500, body: error.message };
     }
 };
