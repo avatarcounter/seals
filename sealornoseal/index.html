@@ -9,19 +9,14 @@
         .game-container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .image-frame { width: 100%; height: 300px; margin: 20px 0; border-radius: 10px; overflow: hidden; background: #eee; position: relative; }
         #display-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        
-        /* Fallback for broken/missing images */
         #display-img:after { content: "Image not found 😢 \A Check folder structure!"; display: flex; justify-content: center; align-items: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ddd; white-space: pre; text-align: center; color: #555; }
-
         .controls { display: flex; gap: 10px; justify-content: center; }
         .btn { padding: 15px 30px; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; transition: transform 0.1s; }
         .btn:active { transform: scale(0.95); }
         .seal-btn { background: #2980b9; }
         .noseal-btn { background: #8e44ad; }
-        
         .score-board { font-size: 1.2rem; color: #555; margin-bottom: 10px; }
         #feedback { margin: 15px; font-weight: bold; height: 1.5em; min-height: 24px; }
-        
         .leaderboard { margin-top: 30px; border-top: 2px solid #eee; padding-top: 15px; }
         .entry { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
         .entry:last-child { border-bottom: none; }
@@ -55,17 +50,14 @@
 </div>
 
 <script>
-    // --- CONFIGURATION ---
     const TOTAL_SEALS = 5;    
     const TOTAL_NOSEALS = 5;  
     const EXTENSION = "jpg";  
-    // ---------------------
 
     let isCorrectSeal = false;
     let score = 0;
     let gameActive = true;
 
-    // 1. FETCH SCORES (With Offline Fallback)
     async function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
         try {
@@ -73,13 +65,14 @@
             if (!response.ok) throw new Error("Offline");
             
             const data = await response.json();
-            if (!data?.dreamlo?.leaderboard?.entry) {
-                list.innerHTML = "<div class='entry'><span>Be the first!</span></div>";
+            const entriesRaw = data?.dreamlo?.leaderboard?.entry;
+
+            if (!entriesRaw) {
+                list.innerHTML = "<div class='entry' style='justify-content:center;'>No scores yet!</div>";
                 return;
             }
 
-            let entries = data.dreamlo.leaderboard.entry;
-            if (!Array.isArray(entries)) entries = [entries];
+            let entries = Array.isArray(entriesRaw) ? entriesRaw : [entriesRaw];
 
             list.innerHTML = entries.slice(0, 5).map(s => `
                 <div class="entry">
@@ -88,12 +81,10 @@
                 </div>
             `).join('');
         } catch (e) {
-            // SAFE FALLBACK so game doesn't break
-            list.innerHTML = "<div class='entry' style='justify-content:center; color:#999;'>Leaderboard Offline (Local Mode)</div>";
+            list.innerHTML = "<div class='entry' style='justify-content:center; color:#999;'>Leaderboard Offline</div>";
         }
     }
 
-    // 2. SAVE SCORE (With Safe Fail)
     function saveScore(name, finalScore) {
         const cleanName = name.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 12);
         
@@ -102,11 +93,12 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: cleanName, score: finalScore })
         })
-        .then(() => setTimeout(updateLeaderboardUI, 1500))
-        .catch(() => console.log("Score not saved (Offline mode)"));
+        .then(() => {
+            setTimeout(updateLeaderboardUI, 1000);
+        })
+        .catch(err => console.error("Error saving score:", err));
     }
 
-    // 3. GAME LOGIC
     function nextRound() {
         gameActive = true;
         const feedback = document.getElementById('feedback');
@@ -115,14 +107,10 @@
         
         isCorrectSeal = Math.random() < 0.5;
         const folder = isCorrectSeal ? "seal" : "noseal";
-        // Ensure we don't get 0 by using Math.floor + 1
-        const randomNum = Math.floor(Math.random() * (isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS)) + 1;
+        const total = isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS;
+        const randomNum = Math.floor(Math.random() * total) + 1;
         
-        // Set the image source
         imgElement.src = `${folder}/${randomNum}.${EXTENSION}`;
-        
-        // Debug helper: logs what image it's trying to find
-        console.log(`Looking for image at: ${imgElement.src}`);
     }
 
     function check(userChoice) {
@@ -145,16 +133,13 @@
             
             setTimeout(() => {
                 if (score > 0) {
-                    // Small delay to let the UI update before alert
-                    setTimeout(() => {
-                        const name = prompt(`Streak: ${score}! Name for leaderboard:`);
-                        if (name && name.trim()) saveScore(name, score);
-                        resetGame();
-                    }, 100);
-                } else {
-                    resetGame();
+                    const name = prompt(`Streak: ${score}! Name for leaderboard:`);
+                    if (name && name.trim()) {
+                        saveScore(name, score);
+                    }
                 }
-            }, 1000);
+                resetGame();
+            }, 1200);
         }
     }
 
@@ -164,7 +149,6 @@
         nextRound();
     }
 
-    // Start everything
     updateLeaderboardUI();
     nextRound();
 </script>
