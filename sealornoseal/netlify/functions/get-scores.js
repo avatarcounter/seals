@@ -1,34 +1,27 @@
-const fetch = require('node-fetch');
-
+// netlify/functions/get-scores.js
 exports.handler = async () => {
     const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
-    
-    // Fixed: Added "/" and the missing "$" for the template literal
     const url = `http://dreamlo.com{PUBLIC_KEY}/json`;
-    
+
     try {
+        // NATIVE FETCH (No require needed in Node 18+)
         const response = await fetch(url);
         
         if (!response.ok) {
-            throw new Error(`Dreamlo responded with status: ${response.status}`);
+            return { statusCode: response.status, body: "Dreamlo Error" };
         }
 
         const data = await response.json();
 
         return {
             statusCode: 200,
-            headers: {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*" 
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
         };
-    } catch (err) {
-        console.error("Error fetching scores:", err);
+    } catch (error) {
         return {
             statusCode: 500,
-            headers: { "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({ error: err.message })
+            body: JSON.stringify({ error: error.message })
         };
     }
 };
