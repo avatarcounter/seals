@@ -7,7 +7,7 @@
     <style>
         body { font-family: 'Arial', sans-serif; display: flex; flex-direction: column; align-items: center; background: #2c3e50; color: white; margin: 0; padding: 20px; }
         .game-card { background: #ecf0f1; padding: 25px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); text-align: center; color: #333; max-width: 450px; }
-        .img-container { width: 400px; height: 300px; margin-bottom: 20px; overflow: hidden; border-radius: 10px; background: #bdc3c7; }
+        .img-container { width: 400px; height: 300px; margin-bottom: 20px; overflow: hidden; border-radius: 10px; background: #bdc3c7; display: flex; align-items: center; justify-content: center; }
         img { width: 100%; height: 100%; object-fit: cover; }
         .controls { display: flex; gap: 15px; justify-content: center; }
         button { padding: 15px 30px; font-size: 1.1rem; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; transition: 0.2s; }
@@ -25,7 +25,7 @@
 
     <div class="game-card">
         <div class="img-container">
-            <img id="display-img" src="" alt="Loading images...">
+            <img id="display-img" src="" alt="Loading...">
         </div>
         
         <div class="controls">
@@ -34,36 +34,52 @@
         </div>
 
         <div id="feedback"></div>
-        <div class="counter">Images found: <span id="total-count">0</span></div>
+        <div class="counter">Images in library: <span id="total-count">0</span></div>
     </div>
 
     <script>
-        // --- SETTINGS: Update these as you add more images ---
-        const TOTAL_SEALS = 5;    // Number of images in /seal folder
-        const TOTAL_NOSEALS = 5;  // Number of images in /noseal folder
-        const EXTENSION = "jpg";  // The file format (jpg, png, etc.)
-        // -----------------------------------------------------
+        // --- CONFIGURATION ---
+        const TOTAL_SEALS = 5;    
+        const TOTAL_NOSEALS = 5;  
+        const EXTENSION = "jpg";  
+        // ---------------------
 
         let isCorrectSeal = false;
 
         function nextRound() {
-            document.getElementById('feedback').innerText = "";
+            const feedback = document.getElementById('feedback');
+            const imgElement = document.getElementById('display-img');
             
-            // Randomly decide folder
+            feedback.innerText = "";
+            imgElement.alt = "Loading...";
+
+            // Randomly decide folder (seal or noseal)
             isCorrectSeal = Math.random() < 0.5;
             const folder = isCorrectSeal ? "seal" : "noseal";
             const max = isCorrectSeal ? TOTAL_SEALS : TOTAL_NOSEALS;
             
-            // Pick a random number between 1 and your Max
+            // Generate random number
             const randomNum = Math.floor(Math.random() * max) + 1;
             
-            // Set the image source
-            const imgElement = document.getElementById('display-img');
-            imgElement.src = `${folder}/${randomNum}.${EXTENSION}`;
+            // Construct path: e.g., "noseal/1.jpg"
+            const finalPath = folder + "/" + randomNum + "." + EXTENSION;
+            
+            // Debugger: Press F12 in your browser to see this!
+            console.log("Current Round Path: " + finalPath);
+            
+            imgElement.src = finalPath;
+
+            // Handle failed loads
+            imgElement.onerror = function() {
+                console.error("FAILED TO LOAD: " + finalPath);
+                feedback.innerText = "Error loading " + finalPath;
+                feedback.style.color = "#c0392b";
+            };
         }
 
         function check(userChoice) {
             const feedback = document.getElementById('feedback');
+            
             if (userChoice === isCorrectSeal) {
                 feedback.innerText = "Correct! 🌊";
                 feedback.style.color = "#27ae60";
@@ -71,13 +87,14 @@
                 feedback.innerText = "Nope! That's a " + (isCorrectSeal ? "Seal" : "Sea Lion");
                 feedback.style.color = "#c0392b";
             }
+            
+            // Wait 1.5 seconds then load next
             setTimeout(nextRound, 1500);
         }
 
-        // Display totals and start
+        // Initialize total count and start game
         document.getElementById('total-count').innerText = TOTAL_SEALS + TOTAL_NOSEALS;
         nextRound();
     </script>
 </body>
 </html>
-
