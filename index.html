@@ -100,7 +100,7 @@
   <div id="secretSection" style="display: none; margin-top: 50px; padding: 20px; border-top: 2px dashed #ccc;">
     <h3>SEAL OR NO SEAL?</h3>
     <div class="button-container">
-      <a href="https://seal.motorcycles/sealornoseal">
+      <a href="https://seal.motorcycles">
         <button style="background: #4CAF50;">SEAL</button>
       </a>
       <a href="about:blank">
@@ -138,5 +138,22 @@
       'word' : 'https://seal.motorcycles/sealmotorcycles'
     };
 
+    dialogueInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        const val = dialogueInput.value.trim();
+        
+
+        if (val === '777') {
+          secretSection.style.display = 'block';
+          secretSection.scrollIntoView({ behavior: 'smooth' });
+        } else if (routes[val.toLowerCase()]) {
+          window.location.href = routes[val.toLowerCase()];
+        }
+        
+        dialogueInput.value = '';
+      }
+    });
+  </script>
 </body>
 </html>
+
