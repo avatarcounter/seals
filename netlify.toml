@@ -1,5 +1,0 @@
-[build]
-  publish = "sealornoseal"
-
-[functions]
-  directory = "netlify/functions"
