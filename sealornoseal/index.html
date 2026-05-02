@@ -1,7 +1,49 @@
-    <!-- ... existing HTML above ... -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seal or No Seal?</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; display: flex; flex-direction: column; align-items: center; background: #2c3e50; color: white; margin: 0; padding: 20px; }
+        .game-card { background: #ecf0f1; padding: 25px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); text-align: center; color: #333; max-width: 450px; }
+        .img-container { width: 400px; height: 300px; margin-bottom: 20px; overflow: hidden; border-radius: 10px; background: #bdc3c7; display: flex; align-items: center; justify-content: center; }
+        img { width: 100%; height: 100%; object-fit: cover; }
+        .controls { display: flex; gap: 15px; justify-content: center; }
+        button { padding: 15px 30px; font-size: 1.1rem; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; transition: 0.2s; }
+        button:hover { opacity: 0.9; transform: translateY(-2px); }
+        .seal-btn { background: #3498db; color: white; }
+        .noseal-btn { background: #e67e22; color: white; }
+        #feedback { margin-top: 20px; font-size: 1.2rem; font-weight: bold; min-height: 1.5em; }
+        .score-display { margin-top: 15px; font-size: 1.5rem; color: #2c3e50; font-weight: bold; }
+        .leaderboard { margin-top: 30px; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; width: 300px; }
+        .leaderboard h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #7f8c8d; padding-bottom: 10px; text-align: center; }
+        .entry { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+
+    <h1>🦭 Global Seal or No Seal?</h1>
+    <p>Ear flaps = No Seal. No ears = Seal!</p>
+
+    <div class="game-card">
+        <div class="score-display">Streak: <span id="correct-count">0</span></div>
+        <div class="img-container">
+            <img id="display-img" src="" alt="Loading...">
+        </div>
+        <div class="controls">
+            <button class="seal-btn" onclick="check(true)">SEAL</button>
+            <button class="noseal-btn" onclick="check(false)">NO SEAL</button>
+        </div>
+        <div id="feedback"></div>
+    </div>
+
+    <div class="leaderboard">
+        <h2>🏆 World Top 5</h2>
+        <div id="leaderboard-list">Loading scores...</div>
+    </div>
 
     <script>
-        // --- CONFIGURATION ---
         const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
         const TOTAL_SEALS = 5;    
         const TOTAL_NOSEALS = 5;  
@@ -14,7 +56,6 @@
         async function updateLeaderboardUI() {
             const list = document.getElementById('leaderboard-list');
             try {
-                // Fixed the URL here too
                 const response = await fetch(`https://dreamlo.com{PUBLIC_KEY}/json`);
                 const data = await response.json();
                 
@@ -44,9 +85,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: cleanName, score: finalScore })
             })
-            .then(() => {
-                setTimeout(updateLeaderboardUI, 1200);
-            })
+            .then(() => setTimeout(updateLeaderboardUI, 1200))
             .catch(err => console.error("Save error:", err));
         }
 
@@ -67,6 +106,7 @@
             gameActive = false;
             const feedback = document.getElementById('feedback');
             const scoreDisplay = document.getElementById('correct-count');
+            
             if (userChoice === isCorrectSeal) {
                 score++;
                 scoreDisplay.innerText = score;
