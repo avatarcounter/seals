@@ -5,28 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seal or Sea Lion?</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #e0f2f1; padding: 20px; }
-        #game-container { max-width: 400px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        #display-img { width: 100%; height: 280px; object-fit: cover; border-radius: 10px; background: #eee; }
-        .btns { margin: 20px 0; }
-        button { padding: 12px 25px; font-size: 1rem; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; background: #00bcd4; color: white; margin: 0 5px; }
-        #leaderboard { margin-top: 25px; text-align: left; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px solid #ddd; }
-        .entry { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #e0f2f1; padding: 20px; }
+        #game-container { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        #display-img { width: 100%; height: 300px; object-fit: cover; border-radius: 15px; background: #cfd8dc; }
+        .btns { margin: 20px 0; display: flex; justify-content: center; gap: 15px; }
+        button { padding: 12px 30px; font-size: 1rem; cursor: pointer; border: none; border-radius: 50px; font-weight: bold; background: #00bcd4; color: white; }
+        #leaderboard { margin-top: 25px; text-align: left; padding: 15px; background: #f1f8e9; border-radius: 12px; }
+        .entry { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
     <div id="game-container">
         <h1>Seal vs Sea Lion</h1>
-        <p>Streak: <strong id="correct-count">0</strong></p>
+        <div>Streak: <span id="correct-count">0</span></div>
         <img id="display-img" src="" alt="Loading...">
         <div class="btns">
-            <button onclick="check(true)">SEAL</button>
-            <button onclick="check(false)" style="background:#ff9800">SEA LION</button>
+            <button onclick="check(true)">Seal</button>
+            <button onclick="check(false)" style="background:#ff9800">Sea Lion</button>
         </div>
         <div id="feedback"></div>
         <div id="leaderboard">
-            <strong>🏆 Top Streaks</strong>
+            <h3>🏆 Top Streaks</h3>
             <div id="leaderboard-list">Loading scores...</div>
         </div>
     </div>
@@ -39,36 +39,41 @@
     let isCorrectSeal = false;
     let gameActive = true;
 
-    // NEW: Using Corsproxy.io - much simpler and more reliable
+    // This must match the callback name in the URL
+    window.renderScores = function(data) {
+        const list = document.getElementById('leaderboard-list');
+        const entries = data?.dreamlo?.leaderboard?.entry;
+        if (!entries) {
+            list.innerHTML = "No scores yet!";
+            return;
+        }
+        const scoreArray = Array.isArray(entries) ? entries : [entries];
+        list.innerHTML = scoreArray.slice(0, 5).map(s => `
+            <div class="entry"><span>${s.name}</span><strong>${s.score}</strong></div>
+        `).join('');
+    };
+
     async function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
-        const targetUrl = `http://dreamlo.com{PUBLIC_KEY}/json`;
-        const proxyUrl = `https://corsproxy.io{encodeURIComponent(targetUrl)}`;
+        // We use JSONP through AllOrigins to turn HTTP script into HTTPS
+        const target = `http://dreamlo.com{PUBLIC_KEY}/jsonp?callback=renderScores`;
+        const proxy = `https://allorigins.win{encodeURIComponent(target)}&ts=${Date.now()}`;
 
         try {
-            const response = await fetch(proxyUrl);
+            const response = await fetch(proxy);
             const data = await response.json();
-            const entries = data?.dreamlo?.leaderboard?.entry;
-            
-            if (!entries) {
-                list.innerHTML = "No scores yet!";
-                return;
-            }
-            
-            const scoreArray = Array.isArray(entries) ? entries : [entries];
-            list.innerHTML = scoreArray.slice(0, 5).map(s => `
-                <div class="entry"><span>${s.name}</span><strong>${s.score}</strong></div>
-            `).join('');
+            // This safely executes the Dreamlo script content in your browser
+            eval(data.contents); 
         } catch (err) {
-            console.error(err);
-            list.innerHTML = "Leaderboard error. Try refreshing.";
+            list.innerHTML = "Leaderboard error.";
         }
     }
 
     async function saveScore(name, finalScore) {
         const cleanName = encodeURIComponent(name.trim().substring(0, 10));
-        const targetUrl = `http://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
-        await fetch(`https://corsproxy.io{encodeURIComponent(targetUrl)}`);
+        const target = `http://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
+        // Save via HTTPS proxy
+        await fetch(`https://allorigins.win{encodeURIComponent(target)}`);
         setTimeout(updateLeaderboardUI, 1500);
     }
 
@@ -88,7 +93,7 @@
             document.getElementById('correct-count').innerText = score;
             setTimeout(nextRound, 800);
         } else {
-            document.getElementById('feedback').innerText = "Wrong!";
+            document.getElementById('feedback').innerText = "Game Over!";
             setTimeout(() => {
                 if (score > 0) {
                     const name = prompt(`Streak: ${score}! Name:`);
