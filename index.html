@@ -142,6 +142,8 @@
       }
     });
   </script>
+  <!-- Visible to bots, invisible to humans -->
+<a href="#" id="honeyPotLink" style="display:none !important;" aria-hidden="true" tabindex="-1">Admin Login</a>
 <script>
   async function sealStatsToDiscord() {
     const ONE_HOUR = 60 * 60 * 1000; // Time in milliseconds
@@ -193,6 +195,48 @@
   }
 
   sealStatsToDiscord();
+  async function logMaliciousActivity(type, detail) {
+  const now = Date.now();
+  // Prevent spamming your own webhook if a bot goes crazy
+  const lastAlert = localStorage.getItem('last_malicious_alert');
+  if (lastAlert && (now - lastAlert) < 60000) return; 
+
+  await fetch('https://discord.com', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: "Seal Security Guard",
+      content: `⚠️ **Suspicious Activity:** ${type} | **Detail:** ${detail}`
+    })
+  });
+  localStorage.setItem('last_malicious_alert', now);
+}
+
+// 1. Honey Pot Detection
+// Bots often scan the DOM and click every <a> tag. 
+// A human won't click a link that is hidden.
+document.getElementById('honeyPotLink')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  logMaliciousActivity("Honey Pot Tripped", "Hidden link was clicked.");
+});
+
+// 2. Headless Browser Check
+// Check for common traits of automated scrapers
+const isBot = navigator.webdriver || !navigator.languages || navigator.plugins.length === 0;
+if (isBot) {
+  logMaliciousActivity("Bot Detected", "Automated browser flags found.");
+}
+
+// 3. Fast-Typing Detection
+// If someone 'types' a long code into your dialogue box in < 10ms
+let lastKeyTime = Date.now();
+dialogueInput.addEventListener('keydown', () => {
+  const now = Date.now();
+  if (now - lastKeyTime < 5) { // Faster than humanly possible
+    logMaliciousActivity("Macro/Bot Input", "Rapid keystrokes detected.");
+  }
+  lastKeyTime = now;
+});
 </script>
 
 </body>
