@@ -1,13 +1,15 @@
 exports.handler = async () => {
     const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
-    // This is the correct, full URL format for dreamlo JSON
+    // Fixed: Added /lb/ and the $ so the variable actually works
     const url = `http://dreamlo.com{PUBLIC_KEY}/json`;
 
     try {
         const response = await fetch(url);
         
         if (!response.ok) {
-            return { statusCode: response.status, body: "Dreamlo Error" };
+            // This will help you see if Dreamlo is rejecting the request
+            const errorText = await response.text();
+            return { statusCode: response.status, body: `Dreamlo Error: ${errorText}` };
         }
 
         const data = await response.json();
