@@ -106,12 +106,12 @@
     const dialogueInput = document.getElementById('dialogueInput');
     
     const routes = {
-      '+4': 'https://seal.motorcycles',
-      '24': 'https://seal.motorcycles',
-      'tetris': 'https://seal.motorcycles',
+      '+4': 'https://seal.motorcycles/magic',
+      '24': 'https://seal.motorcycles/24',
+      'tetris': 'https://seal.motorcycles/tetris',
       'beast' : 'https://seal.motorcycles',
       'world' : 'https://goodbyetoa.world',
-      'word' : 'https://seal.motorcycles'
+      'word' : 'https://seal.motorcycles/sealmotorcycles'
     };
 
     dialogueInput.addEventListener('keypress', (event) => {
@@ -124,6 +124,22 @@
       }
     });
   </script>
-
+<br>
+  <br>
+  <br>
+  <!-- Seal or No Seal Section -->
+<div style="margin-top: 50px; padding: 20px; border-top: 2px dashed #ccc;">
+  <h3>SEAL OR NO SEAL?</h3>
+  <div class="button-container">
+    <a href="https://seal.motorcycles">
+      <button style="background: #4CAF50;">SEAL</button>
+    </a>
+    <a href="about:blank">
+      <button style="background: #f44336; margin-left: 10px;">NO SEAL</button>
+    </a>
+  </div>
+</div>
+  <br>
+  <br>
 </body>
 </html>
