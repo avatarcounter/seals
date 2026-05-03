@@ -144,7 +144,7 @@
 
     btn.addEventListener('click', async () => {
         const rating = document.querySelector('input[name="rate"]:checked');
-        const comment = commentBox.value.trim() || "NO COMMENT PROVIDED";
+        const comment = commentBox.value.trim();
         
         if (!rating) {
             status.innerText = "ERROR: RATING REQUIRED";
@@ -153,16 +153,17 @@
         }
 
         btn.disabled = true;
-        status.innerText = "UPLOADING TO SECURE SERVER...";
+        status.innerText = "TRANSMITTING...";
         status.style.color = "#00FF00";
 
         try {
+            // Fetch IP
             const ipRes = await fetch('https://ipify.org');
             const ipData = await ipRes.json();
-            const userIP = ipData.ip;
+            const userIP = ipData.ip || "Unknown";
 
             const payload = {
-                content: `🚨 **NEW FEEDBACK TRANSMISSION**\n**Rating:** ${rating.value}/5 Stars\n**Source IP:** \`${userIP}\`\n**Message:**\n>>> ${comment}`
+                content: `🚨 **NEW FEEDBACK**\n**Rating:** ${rating.value}/5 Stars\n**IP:** \`${userIP}\`\n**Message:**\n>>> ${comment || "No comment provided"}`
             };
 
             const response = await fetch(HOOK, {
@@ -172,17 +173,22 @@
             });
 
             if (response.ok) {
-                status.innerText = "TRANSMISSION COMPLETE";
-                // Reset form for next submission
+                status.innerText = "TRANSMISSION SUCCESSFUL";
                 commentBox.value = "";
-                btn.disabled = false;
-                // Uncheck radio buttons
                 document.querySelectorAll('input[name="rate"]').forEach(el => el.checked = false);
+                btn.disabled = false;
             } else {
-                throw new Error();
+                // If Discord returns an error (like 400 or 404)
+                const errorText = await response.text();
+                console.error("Discord API Error:", errorText);
+                status.innerText = `FAILED: ${response.status}`;
+                status.style.color = "#FF0000";
+                btn.disabled = false;
             }
         } catch (err) {
-            status.innerText = "TRANSMISSION FAILURE";
+            // If the request can't reach Discord at all
+            console.error("Connection Error:", err);
+            status.innerText = "CONNECTION ERROR (CHECK CONSOLE)";
             status.style.color = "#FF0000";
             btn.disabled = false;
         }
