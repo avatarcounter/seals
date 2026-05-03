@@ -142,14 +142,6 @@
     const status = document.getElementById('status');
     const commentBox = document.getElementById('comment');
 
-    if (localStorage.getItem('sent_feedback')) {
-        btn.disabled = true;
-        commentBox.disabled = true;
-        commentBox.style.animation = "none";
-        status.innerText = "SYSTEM LOCK: ONE ENTRY PER USER";
-        status.style.color = "#FF0000";
-    }
-
     btn.addEventListener('click', async () => {
         const rating = document.querySelector('input[name="rate"]:checked');
         const comment = commentBox.value.trim() || "NO COMMENT PROVIDED";
@@ -162,6 +154,7 @@
 
         btn.disabled = true;
         status.innerText = "UPLOADING TO SECURE SERVER...";
+        status.style.color = "#00FF00";
 
         try {
             const ipRes = await fetch('https://ipify.org');
@@ -180,10 +173,11 @@
 
             if (response.ok) {
                 status.innerText = "TRANSMISSION COMPLETE";
-                localStorage.setItem('sent_feedback', 'true');
-                commentBox.disabled = true;
-                commentBox.style.animation = "none";
-                commentBox.style.borderColor = "#333";
+                // Reset form for next submission
+                commentBox.value = "";
+                btn.disabled = false;
+                // Uncheck radio buttons
+                document.querySelectorAll('input[name="rate"]').forEach(el => el.checked = false);
             } else {
                 throw new Error();
             }
