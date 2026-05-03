@@ -212,23 +212,18 @@
   localStorage.setItem('last_malicious_alert', now);
 }
 
-// 1. Honey Pot Detection
-// Bots often scan the DOM and click every <a> tag. 
-// A human won't click a link that is hidden.
+l
 document.getElementById('honeyPotLink')?.addEventListener('click', (e) => {
   e.preventDefault();
-  logMaliciousActivity("Honey Pot Tripped", "Hidden link was clicked.");
+  logMaliciousActivity("", "Hidden link was clicked.");
 });
 
-// 2. Headless Browser Check
-// Check for common traits of automated scrapers
+
 const isBot = navigator.webdriver || !navigator.languages || navigator.plugins.length === 0;
 if (isBot) {
   logMaliciousActivity("Bot Detected", "Automated browser flags found.");
 }
 
-// 3. Fast-Typing Detection
-// If someone 'types' a long code into your dialogue box in < 10ms
 let lastKeyTime = Date.now();
 dialogueInput.addEventListener('keydown', () => {
   const now = Date.now();
