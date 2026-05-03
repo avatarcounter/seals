@@ -87,6 +87,24 @@
             color: #333;
         }
 
+        /* PROGRESS BAR STYLES */
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background: #1a1a1a;
+            border: 2px solid #FF0000;
+            margin-bottom: 25px;
+            display: none;
+            position: relative;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #00FF00;
+            box-shadow: 0 0 10px #00FF00;
+            transition: width 0.1s linear;
+        }
+
         #submit-btn {
             width: 100%;
             padding: 18px;
@@ -131,6 +149,11 @@
         <input type="radio" name="rate" id="s1" value="1"><label for="s1">★</label>
     </div>
     <textarea id="comment" placeholder="LOG YOUR FEEDBACK..."></textarea>
+    
+    <div class="progress-container" id="prog-cont">
+        <div class="progress-bar" id="prog-bar"></div>
+    </div>
+
     <button id="submit-btn">Transmit Hate</button>
     <div id="status"></div>
 </div>
@@ -139,6 +162,8 @@
     const btn = document.getElementById('submit-btn');
     const status = document.getElementById('status');
     const commentBox = document.getElementById('comment');
+    const progCont = document.getElementById('prog-cont');
+    const progBar = document.getElementById('prog-bar');
 
     btn.addEventListener('click', () => {
         const rating = document.querySelector('input[name="rate"]:checked');
@@ -149,31 +174,41 @@
             return;
         }
 
-        // Disable UI to look like it's working
+        // Setup UI
         btn.disabled = true;
-        status.innerText = "BYPASSING FIREWALLS...";
+        progCont.style.display = "block";
         status.style.color = "#00FF00";
+        status.innerText = "BYPASSING SECURITY...";
 
-        // Simulated steps to make it look authentic
-        setTimeout(() => {
-            status.innerText = "UPLOADING TO SECURE SERVER...";
+        let width = 0;
+        const interval = setInterval(() => {
+            if (width >= 100) {
+                clearInterval(interval);
+                finishHate();
+            } else {
+                width += Math.random() * 5; // Random jumps for "realism"
+                if (width > 100) width = 100;
+                progBar.style.width = width + "%";
+                
+                if (width > 40) status.innerText = "UPLOADING HATE PACKETS...";
+                if (width > 80) status.innerText = "FINALIZING TRANSMISSION...";
+            }
+        }, 150);
+
+        function finishHate() {
+            status.innerText = "HATE SENT TO BEAST'S HOME";
             
+            // Clear inputs
+            commentBox.value = "";
+            document.querySelectorAll('input[name="rate"]').forEach(el => el.checked = false);
+            
+            // Reset after a delay
             setTimeout(() => {
-                status.innerText = "TRANSMISSION COMPLETE";
-                
-                // Clear the form
-                commentBox.value = "";
-                document.querySelectorAll('input[name="rate"]').forEach(el => el.checked = false);
-                
-                // Re-enable button after a brief pause
-                setTimeout(() => {
-                    btn.disabled = false;
-                    status.innerText = "";
-                }, 2000);
-                
-            }, 1500);
-            
-        }, 1000);
+                btn.disabled = false;
+                progCont.style.display = "none";
+                progBar.style.width = "0%";
+            }, 4000);
+        }
     });
 </script>
 
