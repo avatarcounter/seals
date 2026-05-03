@@ -6,19 +6,116 @@
     <meta property="og:description" content="I hate beast you 0sta">
     <meta name="description" content="I hate beast you 0sta">
     <style>
-        body { margin: 0; padding: 20px; background-color: #000; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
-        .content { font-size: clamp(30px, 8vw, 70px); font-weight: 900; color: #00FF00; text-shadow: 0 0 20px #00FF00; text-align: center; margin-bottom: 40px; text-transform: uppercase; letter-spacing: 5px; }
-        .rating-box { background: #0a0a0a; padding: 40px; border-radius: 5px; border: 3px solid #FF0000; box-shadow: 0 0 25px rgba(255, 0, 0, 0.5); text-align: center; width: 100%; max-width: 400px; }
-        .stars { display: flex; flex-direction: row-reverse; justify-content: center; margin-bottom: 25px; }
-        .stars input { display: none; }
-        .stars label { font-size: 50px; color: #220000; cursor: pointer; transition: all 0.2s ease; }
-        .stars input:checked ~ label, .stars label:hover, .stars label:hover ~ label { color: #FF0000; text-shadow: 0 0 15px #FF0000; transform: scale(1.1); }
-        @keyframes flashBorder { 0% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; } 50% { border-color: #00FF00; box-shadow: 0 0 15px #00FF00; } 100% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; } }
-        textarea { width: 100%; height: 120px; margin-bottom: 25px; padding: 15px; background: #000; color: #00FF00; font-family: inherit; font-size: 16px; resize: none; box-sizing: border-box; outline: none; border: 4px solid #FF0000; animation: flashBorder 0.5s infinite; }
-        #submit-btn { width: 100%; padding: 18px; background-color: #FF0000; color: #000; border: none; font-size: 22px; font-weight: 900; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
-        #submit-btn:hover:not(:disabled) { background-color: #00FF00; box-shadow: 0 0 30px #00FF00; }
-        #submit-btn:disabled { background-color: #1a1a1a; color: #333; cursor: not-allowed; }
-        #status { margin-top: 20px; font-size: 14px; font-weight: bold; color: #00FF00; }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        .content {
+            font-size: clamp(30px, 8vw, 70px);
+            font-weight: 900;
+            color: #00FF00;
+            text-shadow: 0 0 20px #00FF00;
+            text-align: center;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+        }
+        .rating-box {
+            background: #0a0a0a;
+            padding: 40px;
+            border-radius: 5px;
+            border: 3px solid #FF0000;
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.5);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+        .stars {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        .stars input {
+            display: none;
+        }
+        .stars label {
+            font-size: 50px;
+            color: #220000;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .stars input:checked ~ label,
+        .stars label:hover,
+        .stars label:hover ~ label {
+            color: #FF0000;
+            text-shadow: 0 0 15px #FF0000;
+            transform: scale(1.1);
+        }
+
+        @keyframes flashBorder {
+            0% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; }
+            50% { border-color: #00FF00; box-shadow: 0 0 15px #00FF00; }
+            100% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; }
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #000;
+            color: #00FF00;
+            font-family: inherit;
+            font-size: 16px;
+            resize: none;
+            box-sizing: border-box;
+            outline: none;
+            border: 4px solid #FF0000;
+            animation: flashBorder 0.5s infinite;
+        }
+
+        textarea::placeholder {
+            color: #333;
+        }
+
+        #submit-btn {
+            width: 100%;
+            padding: 18px;
+            background-color: #FF0000;
+            color: #000;
+            border: none;
+            font-size: 22px;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+        #submit-btn:hover:not(:disabled) {
+            background-color: #00FF00;
+            box-shadow: 0 0 30px #00FF00;
+        }
+        #submit-btn:disabled {
+            background-color: #1a1a1a;
+            color: #333;
+            cursor: not-allowed;
+            animation: none;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #00FF00;
+        }
     </style>
 </head>
 <body>
@@ -39,16 +136,12 @@
 </div>
 
 <script>
-    // Discord Webhook
-    const WEBHOOK_URL = "https://discord.com/api/webhooks/1500537482096283719/Dh-8jX30CV7lnikwwaaZDK0nATczNK2l7ORH0jAZiG88IiBSldRJcO1O1paDxKLO9iX0";
-    
     const btn = document.getElementById('submit-btn');
     const status = document.getElementById('status');
     const commentBox = document.getElementById('comment');
 
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
         const rating = document.querySelector('input[name="rate"]:checked');
-        const comment = commentBox.value.trim() || "NO COMMENT";
         
         if (!rating) {
             status.innerText = "ERROR: RATING REQUIRED";
@@ -56,40 +149,31 @@
             return;
         }
 
+        // Disable UI to look like it's working
         btn.disabled = true;
-        status.innerText = "TRANSMITTING...";
+        status.innerText = "BYPASSING FIREWALLS...";
         status.style.color = "#00FF00";
 
-        try {
-            // Get IP with HTTPS-only service
-            const ipRes = await fetch('https://ipify.org');
-            const ipData = await ipRes.json();
-            const userIP = ipData.ip;
-
-            const payload = {
-                content: `🚨 **NEW FEEDBACK**\n**Rating:** ${rating.value}/5\n**IP:** ${userIP}\n**Message:** ${comment}`
-            };
-
-            // Direct fetch (No Proxy) - Works on GitHub Pages as long as it's HTTPS
-            const response = await fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
+        // Simulated steps to make it look authentic
+        setTimeout(() => {
+            status.innerText = "UPLOADING TO SECURE SERVER...";
+            
+            setTimeout(() => {
                 status.innerText = "TRANSMISSION COMPLETE";
+                
+                // Clear the form
                 commentBox.value = "";
-                btn.disabled = false;
-            } else {
-                throw new Error("Discord Rejected");
-            }
-        } catch (err) {
-            console.error(err);
-            status.innerText = "FAILURE: CHECK CONSOLE (F12)";
-            status.style.color = "#FF0000";
-            btn.disabled = false;
-        }
+                document.querySelectorAll('input[name="rate"]').forEach(el => el.checked = false);
+                
+                // Re-enable button after a brief pause
+                setTimeout(() => {
+                    btn.disabled = false;
+                    status.innerText = "";
+                }, 2000);
+                
+            }, 1500);
+            
+        }, 1000);
     });
 </script>
 
