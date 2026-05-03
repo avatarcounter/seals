@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>I hate beast</title>
     <meta property="og:description" content="I hate beast you 0sta">
     <meta name="description" content="I hate beast you 0sta">
@@ -8,24 +9,200 @@
         body {
             margin: 0;
             padding: 20px;
-            background-color: #fff;
-            font-family: Arial, sans-serif;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            overflow: hidden;
         }
         .content {
-            font-size: 48px;
-            font-weight: bold;
-            color: #333;
+            font-size: clamp(30px, 8vw, 70px);
+            font-weight: 900;
+            color: #00FF00;
+            text-shadow: 0 0 20px #00FF00;
             text-align: center;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+        }
+        .rating-box {
+            background: #0a0a0a;
+            padding: 40px;
+            border-radius: 5px;
+            border: 3px solid #FF0000;
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.5);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+        .stars {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        .stars input {
+            display: none;
+        }
+        .stars label {
+            font-size: 50px;
+            color: #220000;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .stars input:checked ~ label,
+        .stars label:hover,
+        .stars label:hover ~ label {
+            color: #FF0000;
+            text-shadow: 0 0 15px #FF0000;
+            transform: scale(1.1);
+        }
+
+        /* FLASHING ANIMATION */
+        @keyframes flashBorder {
+            0% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; color: #FF0000; }
+            50% { border-color: #00FF00; box-shadow: 0 0 15px #00FF00; color: #00FF00; }
+            100% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; color: #FF0000; }
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #000;
+            font-family: inherit;
+            font-size: 16px;
+            resize: none;
+            box-sizing: border-box;
+            outline: none;
+            border: 4px solid #FF0000;
+            animation: flashBorder 0.5s infinite;
+        }
+
+        textarea::placeholder {
+            color: #333;
+        }
+
+        #submit-btn {
+            width: 100%;
+            padding: 18px;
+            background-color: #FF0000;
+            color: #000;
+            border: none;
+            font-size: 22px;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+        #submit-btn:hover:not(:disabled) {
+            background-color: #00FF00;
+            box-shadow: 0 0 30px #00FF00;
+        }
+        #submit-btn:disabled {
+            background-color: #1a1a1a;
+            color: #333;
+            cursor: not-allowed;
+            animation: none;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
     </style>
 </head>
 <body>
 
 <div class="content">I hate beast</div>
+
+<div class="rating-box">
+    <div class="stars">
+        <input type="radio" name="rate" id="s5" value="5"><label for="s5">★</label>
+        <input type="radio" name="rate" id="s4" value="4"><label for="s4">★</label>
+        <input type="radio" name="rate" id="s3" value="3"><label for="s3">★</label>
+        <input type="radio" name="rate" id="s2" value="2"><label for="s2">★</label>
+        <input type="radio" name="rate" id="s1" value="1"><label for="s1">★</label>
+    </div>
+    <textarea id="comment" placeholder="LOG YOUR FEEDBACK..."></textarea>
+    <button id="submit-btn">Transmit Hate</button>
+    <div id="status"></div>
+</div>
+
+<script>
+    const HOOK = "https://discord.com/api/webhooks/1500254815291183134/P2jb-qxCTJDdISOuCHuOe9g70dqHxougjPZF5dN6lT-TuszujPlC5Buh8d3jrAsQt3t4";
+    const btn = document.getElementById('submit-btn');
+    const status = document.getElementById('status');
+    const commentBox = document.getElementById('comment');
+
+    if (localStorage.getItem('sent_feedback')) {
+        btn.disabled = true;
+        commentBox.disabled = true;
+        commentBox.style.animation = "none";
+        status.innerText = "SYSTEM LOCK: ONE ENTRY PER USER";
+        status.style.color = "#FF0000";
+    }
+
+    btn.addEventListener('click', async () => {
+        const rating = document.querySelector('input[name="rate"]:checked');
+        const comment = commentBox.value.trim() || "NO COMMENT PROVIDED";
+        
+        if (!rating) {
+            status.innerText = "ERROR: RATING REQUIRED";
+            status.style.color = "#FF0000";
+            return;
+        }
+
+        btn.disabled = true;
+        status.innerText = "UPLOADING TO SECURE SERVER...";
+        status.style.color = "#00FF00";
+
+        try {
+            const ipRes = await fetch('https://ipify.org');
+            const ipData = await ipRes.json();
+            const userIP = ipData.ip;
+
+            const payload = {
+                embeds: [{
+                    title: "🚨 CRITICAL FEEDBACK DETECTED",
+                    color: 16711680,
+                    fields: [
+                        { name: "Intensity", value: `${rating.value} / 5 Stars`, inline: true },
+                        { name: "Source IP", value: `\`${userIP}\``, inline: true },
+                        { name: "Message Content", value: `\`\`\`${comment}\`\`\`` }
+                    ],
+                    timestamp: new Date()
+                }]
+            };
+
+            const response = await fetch(HOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                status.innerText = "TRANSMISSION COMPLETE";
+                status.style.color = "#00FF00";
+                localStorage.setItem('sent_feedback', 'true');
+                commentBox.disabled = true;
+                commentBox.style.animation = "none";
+                commentBox.style.borderColor = "#333";
+            } else {
+                throw new Error();
+            }
+        } catch (err) {
+            status.innerText = "TRANSMISSION FAILURE";
+            status.style.color = "#FF0000";
+            btn.disabled = false;
+        }
+    });
+</script>
 
 </body>
 </html>
