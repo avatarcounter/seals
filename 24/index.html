@@ -30,25 +30,30 @@
 
 <script>
     const container = document.getElementById('container');
-    
-    // Initial load: create 200 "24"s to load beyond the visible screen
-    function addNumbers(count) {
-        let html = '';
-        for (let i = 0; i < count; i++) {
-            html += '<div class="number">24</div>';
-        }
-        container.innerHTML += html;
+
+function addNumbers(count) {
+    // Creating elements individually is much faster for the browser
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+        const div = document.createElement('div');
+        div.className = 'number';
+        div.textContent = '24';
+        fragment.appendChild(div);
     }
+    container.appendChild(fragment);
+}
+
+// Initial heavy load to ensure a deep scroll well
+addNumbers(500);
+
+window.addEventListener('scroll', () => {
+    // Trigger much earlier (1000px from bottom) to ensure seamless loading
+    const scrollBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
     
-    // Initial load - increased from 50 to 200
-    addNumbers(1000);
-    
-    // Infinite scroll: add more as user scrolls down
-    window.addEventListener('scroll', function() {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
-            addNumbers(20); // Add 20 more "24"s when near bottom
-        }
-    });
+    if (scrollBottom < 1000) {
+        addNumbers(100);
+    }
+});
 </script>
 
 </body>
