@@ -61,11 +61,10 @@
             transform: scale(1.1);
         }
 
-        /* FLASHING ANIMATION */
         @keyframes flashBorder {
-            0% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; color: #FF0000; }
-            50% { border-color: #00FF00; box-shadow: 0 0 15px #00FF00; color: #00FF00; }
-            100% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; color: #FF0000; }
+            0% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; }
+            50% { border-color: #00FF00; box-shadow: 0 0 15px #00FF00; }
+            100% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; }
         }
 
         textarea {
@@ -74,6 +73,7 @@
             margin-bottom: 25px;
             padding: 15px;
             background: #000;
+            color: #00FF00;
             font-family: inherit;
             font-size: 16px;
             resize: none;
@@ -114,6 +114,7 @@
             font-size: 14px;
             font-weight: bold;
             letter-spacing: 1px;
+            color: #00FF00;
         }
     </style>
 </head>
@@ -136,6 +137,7 @@
 
 <script>
     const HOOK = "https://discord.com/api/webhooks/1500537482096283719/Dh-8jX30CV7lnikwwaaZDK0nATczNK2l7ORH0jAZiG88IiBSldRJcO1O1paDxKLO9iX0";
+    
     const btn = document.getElementById('submit-btn');
     const status = document.getElementById('status');
     const commentBox = document.getElementById('comment');
@@ -160,7 +162,6 @@
 
         btn.disabled = true;
         status.innerText = "UPLOADING TO SECURE SERVER...";
-        status.style.color = "#00FF00";
 
         try {
             const ipRes = await fetch('https://ipify.org');
@@ -168,16 +169,7 @@
             const userIP = ipData.ip;
 
             const payload = {
-                embeds: [{
-                    title: "🚨 CRITICAL FEEDBACK DETECTED",
-                    color: 16711680,
-                    fields: [
-                        { name: "Intensity", value: `${rating.value} / 5 Stars`, inline: true },
-                        { name: "Source IP", value: `\`${userIP}\``, inline: true },
-                        { name: "Message Content", value: `\`\`\`${comment}\`\`\`` }
-                    ],
-                    timestamp: new Date()
-                }]
+                content: `🚨 **NEW FEEDBACK TRANSMISSION**\n**Rating:** ${rating.value}/5 Stars\n**Source IP:** \`${userIP}\`\n**Message:**\n>>> ${comment}`
             };
 
             const response = await fetch(HOOK, {
@@ -188,7 +180,6 @@
 
             if (response.ok) {
                 status.innerText = "TRANSMISSION COMPLETE";
-                status.style.color = "#00FF00";
                 localStorage.setItem('sent_feedback', 'true');
                 commentBox.disabled = true;
                 commentBox.style.animation = "none";
