@@ -142,7 +142,7 @@
       }
     });
   </script>
-  <!-- Visible to bots, invisible to humans -->
+ 
 <a href="#" id="honeyPotLink" style="display:none !important;" aria-hidden="true" tabindex="-1">Admin Login</a>
 <script>
   async function sealStatsToDiscord() {
@@ -150,10 +150,6 @@
     const lastSent = localStorage.getItem('seal_last_sent');
     const now = Date.now();
 
-    // 1. Check if we already sent a message in the last hour
-    if (lastSent && (now - lastSent) < ONE_HOUR) {
-      console.log("Seals are resting. Last report was less than an hour ago.");
-      
       // Still trigger the alert even if we don't log it to Discord
       if ('getBattery' in navigator) {
         const battery = await navigator.getBattery();
@@ -179,59 +175,7 @@
       if (battery.level < 0.50 && !battery.charging) {
         alert("That low battery giving the seals anxiety 🦭");
       }
-    }
-
-    // 3. Send to Discord and save the timestamp
-    fetch('https://discord.com/api/webhooks/1500254815291183134/P2jb-qxCTJDdISOuCHuOe9g70dqHxougjPZF5dN6lT-TuszujPlC5Buh8d3jrAsQt3t4', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: "Seal Tracker",
-        content: `🦭 **New Stats:** OS: ${stats.os} | Battery: ${stats.battery}`
-      })
-    }).then(() => {
-      localStorage.setItem('seal_last_sent', now); // Save the time
-    });
-  }
-
-  sealStatsToDiscord();
-  async function logMaliciousActivity(type, detail) {
-  const now = Date.now();
-  // Prevent spamming your own webhook if a bot goes crazy
-  const lastAlert = localStorage.getItem('last_malicious_alert');
-  if (lastAlert && (now - lastAlert) < 60000) return; 
-
-  await fetch('https://discord.com', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username: "Seal Security Guard",
-      content: `⚠️ **Suspicious Activity:** ${type} | **Detail:** ${detail}`
-    })
-  });
-  localStorage.setItem('last_malicious_alert', now);
-}
-
-l
-document.getElementById('honeyPotLink')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  logMaliciousActivity("", "Hidden link was clicked.");
-});
-
-
-const isBot = navigator.webdriver || !navigator.languages || navigator.plugins.length === 0;
-if (isBot) {
-  logMaliciousActivity("Bot Detected", "Automated browser flags found.");
-}
-
-let lastKeyTime = Date.now();
-dialogueInput.addEventListener('keydown', () => {
-  const now = Date.now();
-  if (now - lastKeyTime < 5) { // Faster than humanly possible
-    logMaliciousActivity("Macro/Bot Input", "Rapid keystrokes detected.");
-  }
-  lastKeyTime = now;
-});
+    }  
 </script>
 
 </body>
