@@ -12,6 +12,7 @@
         button { padding: 12px 30px; font-size: 1rem; cursor: pointer; border: none; border-radius: 50px; font-weight: bold; background: #00bcd4; color: white; }
         #leaderboard { margin-top: 25px; text-align: left; padding: 15px; background: #f1f8e9; border-radius: 12px; }
         .entry { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .error-text { color: red; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -19,13 +20,17 @@
     <div id="game-container">
         <h1>Seal vs Sea Lion</h1>
         <div>Streak: <span id="correct-count">0</span></div>
-        <!-- Placeholder image until game starts -->
-        <img id="display-img" src="" alt="Game Image">
+        
+        <!-- Main Game Image -->
+        <img id="display-img" src="" alt="Loading game image...">
+        
         <div class="btns">
             <button onclick="check(true)">Seal</button>
             <button onclick="check(false)" style="background:#ff9800">Sea Lion</button>
         </div>
+        
         <div id="feedback" style="height: 20px; margin: 10px 0; font-weight: bold;"></div>
+        
         <div id="leaderboard">
             <h3>🏆 Top Streaks</h3>
             <div id="leaderboard-list">Loading scores...</div>
@@ -33,22 +38,23 @@
     </div>
 
 <script>
-    // ==========================================
-    // ⬇️ EDIT YOUR SETTINGS HERE ⬇️
-    // ==========================================
+    // ======================================================
+    // ⚙️ CONFIGURATION: EDIT THIS SECTION ONLY
+    // ======================================================
     
-    // 1. Dreamlo Keys (WARNING: Private Key is visible to users)
+    // 1. Your Dreamlo Keys
+    // WARNING: Your Private Key is visible to anyone who views "Page Source"
     const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
     const PRIVATE_KEY = "waBsY9hwf0urcEpwwn8rLw1Z2xYyPvZEqGdwAay68VqQ";
 
-    // 2. CORS Proxy URL
-    // If testing locally, try "" (empty string). 
-    // If online, use a valid proxy like "https://cors-anywhere.herokuapp.com/"
-    const MY_PROXY = "https://workers.dev/"; 
+    // 2. CORS Proxy
+    // If testing locally (opening the file directly), leave as empty string ""
+    // If hosting online, you may need a proxy like "https://cors-anywhere.herokuapp.com/"
+    const MY_PROXY = ""; 
 
-    // ==========================================
-    // ⬆️ END OF SETTINGS ⬆️
-    // ==========================================
+    // ======================================================
+    // 🛑 STOP EDITING BELOW THIS LINE
+    // ======================================================
 
     let score = 0;
     let isCorrectSeal = false;
@@ -57,29 +63,28 @@
     async function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
         
-        // FIX: Added /lb/ path and fixed string interpolation ${...}
+        // FIXED: Added /lb/ and correct ${} syntax
         const target = `http://dreamlo.com/lb/${PUBLIC_KEY}/json`;
         
-        // Construct URL with Proxy
-        // If proxy is empty, it just fetches the target directly
+        // Apply proxy if one is defined
         const finalUrl = MY_PROXY ? (MY_PROXY + encodeURIComponent(target)) : target;
 
         try {
             const response = await fetch(finalUrl);
-            // Note: Dreamlo often returns text/plain even for JSON
             const data = await response.json();
             
+            // Handle empty leaderboard vs populated leaderboard
             const entries = data?.dreamlo?.leaderboard?.entry;
             
             if (!entries) {
-                list.innerHTML = "No scores yet!";
+                list.innerHTML = "No scores yet. Be the first!";
                 return;
             }
             
-            // Handle case where API returns single object instead of array
+            // Ensure we always have an array (Dreamlo returns an object if only 1 score exists)
             const scoreArray = Array.isArray(entries) ? entries : [entries];
             
-            // Sort by score (descending) and take top 5
+            // Sort descending and take top 5
             scoreArray.sort((a, b) => parseInt(b.score) - parseInt(a.score));
 
             list.innerHTML = scoreArray.slice(0, 5).map(s => `
@@ -90,19 +95,21 @@
             `).join('');
         } catch (err) {
             console.error("Board load failed:", err);
-            list.innerHTML = "Leaderboard unavailable (CORS/Network error).";
+            list.innerHTML = `<div class="error-text">Leaderboard offline (CORS/Network).</div>`;
         }
     }
 
     async function saveScore(name, finalScore) {
+        // Clean input to prevent URL breaking
         const cleanName = encodeURIComponent(name.trim().substring(0, 10));
         
-        // FIX: Added /lb/ path and fixed string interpolation ${...}
+        // FIXED: Added /lb/ and correct ${} syntax
         const target = `http://dreamlo.com/lb/${PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
         const finalUrl = MY_PROXY ? (MY_PROXY + encodeURIComponent(target)) : target;
         
         try {
             await fetch(finalUrl);
+            // Refresh board after save
             setTimeout(updateLeaderboardUI, 1000);
         } catch (err) {
             console.error("Save failed:", err);
@@ -112,16 +119,21 @@
     function nextRound() {
         gameActive = true;
         document.getElementById('feedback').innerText = "";
+        
+        // Logic: 50/50 chance of Seal vs Sea Lion
         isCorrectSeal = Math.random() < 0.5;
         
-        // Expects folders named "seal" and "noseal" with images 1.jpg to 5.jpg
+        // Looks for images in folders: "seal/1.jpg" or "noseal/3.jpg"
         const folder = isCorrectSeal ? "seal" : "noseal";
         const randomNum = Math.floor(Math.random() * 5) + 1;
         
         const img = document.getElementById('display-img');
         img.src = `${folder}/${randomNum}.jpg`;
+        
+        // Error handling if images are missing
         img.onerror = function() {
-            this.alt = "Image not found. Check folder names!";
+            console.log(`Missing image: ${this.src}`);
+            this.alt = "Image not found. Check your folders!";
         };
     }
 
@@ -151,7 +163,7 @@
         }
     }
 
-    // Start the game
+    // Initialize Game
     updateLeaderboardUI();
     nextRound();
 </script>
