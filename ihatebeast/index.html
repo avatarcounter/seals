@@ -87,7 +87,6 @@
             color: #333;
         }
 
-        /* PROGRESS BAR STYLES */
         .progress-container {
             width: 100%;
             height: 20px;
@@ -148,7 +147,7 @@
         <input type="radio" name="rate" id="s2" value="2"><label for="s2">★</label>
         <input type="radio" name="rate" id="s1" value="1"><label for="s1">★</label>
     </div>
-    <textarea id="comment" placeholder="LOG YOUR FEEDBACK..."></textarea>
+    <textarea id="comment" placeholder="LOG YOUR HATRED..."></textarea>
     
     <div class="progress-container" id="prog-cont">
         <div class="progress-bar" id="prog-bar"></div>
@@ -165,50 +164,68 @@
     const progCont = document.getElementById('prog-cont');
     const progBar = document.getElementById('prog-bar');
 
+    // GOOGLE FORM CONFIG
+    const FORM_URL = "https://google.com";
+    const ENTRY_RATING = "entry.1706691456"; 
+    const ENTRY_COMMENT = "entry.317578274"; 
+
     btn.addEventListener('click', () => {
         const rating = document.querySelector('input[name="rate"]:checked');
         
-        if (!rating) {
-            status.innerText = "ERROR: RATING REQUIRED";
+        // Ensure both fields are filled
+        if (!rating || !commentBox.value.trim()) {
+            status.innerText = "ERROR: RATING & LOG REQUIRED";
             status.style.color = "#FF0000";
             return;
         }
 
-        // Setup UI
         btn.disabled = true;
         progCont.style.display = "block";
         status.style.color = "#00FF00";
         status.innerText = "BYPASSING SECURITY...";
 
+        const formData = new FormData();
+        formData.append(ENTRY_RATING, rating.value);
+        formData.append(ENTRY_COMMENT, commentBox.value);
+
         let width = 0;
         const interval = setInterval(() => {
             if (width >= 100) {
                 clearInterval(interval);
-                finishHate();
+                
+                // Submit to Google
+                fetch(FORM_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                })
+                .then(() => {
+                    status.innerText = "HATE SENT TO BEAST'S HOME";
+                    commentBox.value = "";
+                    document.querySelectorAll('input[name="rate"]').forEach(el => el.checked = false);
+                    
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        progCont.style.display = "none";
+                        progBar.style.width = "0%";
+                    }, 4000);
+                })
+                .catch(() => {
+                    status.innerText = "CRITICAL ERROR: UPLINK FAILED";
+                    status.style.color = "#FF0000";
+                    btn.disabled = false;
+                });
+
             } else {
-                width += Math.random() * 5; // Random jumps for "realism"
+                width += Math.random() * 8; 
                 if (width > 100) width = 100;
                 progBar.style.width = width + "%";
                 
-                if (width > 40) status.innerText = "UPLOADING HATE PACKETS...";
-                if (width > 80) status.innerText = "FINALIZING TRANSMISSION...";
+                if (width > 30) status.innerText = "ENCRYPTING DATA...";
+                if (width > 60) status.innerText = "UPLOADING HATE PACKETS...";
+                if (width > 90) status.innerText = "FINALIZING TRANSMISSION...";
             }
-        }, 150);
-
-        function finishHate() {
-            status.innerText = "HATE SENT TO BEAST'S HOME";
-            
-            // Clear inputs
-            commentBox.value = "";
-            document.querySelectorAll('input[name="rate"]').forEach(el => el.checked = false);
-            
-            // Reset after a delay
-            setTimeout(() => {
-                btn.disabled = false;
-                progCont.style.display = "none";
-                progBar.style.width = "0%";
-            }, 4000);
-        }
+        }, 120);
     });
 </script>
 
