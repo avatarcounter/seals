@@ -19,7 +19,8 @@
     <div id="game-container">
         <h1>Seal vs Sea Lion</h1>
         <div>Streak: <span id="correct-count">0</span></div>
-        <img id="display-img" src="" alt="Loading...">
+        <!-- Placeholder image until game starts -->
+        <img id="display-img" src="" alt="Game Image">
         <div class="btns">
             <button onclick="check(true)">Seal</button>
             <button onclick="check(false)" style="background:#ff9800">Sea Lion</button>
@@ -32,12 +33,22 @@
     </div>
 
 <script>
-    // 1. YOUR KEYS
-    const PUBLIC_KEY = "69f639198f40bb1068bb7e9f";
-    const PRIVATE_KEY = "sd5R64xJFk-QcSzJ1xksigJKrrGaD6X0qzcxLnnpa2mw";
- 
-    // 2. YOUR CLOUDFLARE WORKER URL (Replace with your actual .workers.dev link)
-    const MY_PROXY = "https://workers.dev";
+    // ==========================================
+    // ⬇️ EDIT YOUR SETTINGS HERE ⬇️
+    // ==========================================
+    
+    // 1. Dreamlo Keys (WARNING: Private Key is visible to users)
+    const PUBLIC_KEY = "69f60e2d8f40bb1068b944a4";
+    const PRIVATE_KEY = "waBsY9hwf0urcEpwwn8rLw1Z2xYyPvZEqGdwAay68VqQ";
+
+    // 2. CORS Proxy URL
+    // If testing locally, try "" (empty string). 
+    // If online, use a valid proxy like "https://cors-anywhere.herokuapp.com/"
+    const MY_PROXY = "https://workers.dev/"; 
+
+    // ==========================================
+    // ⬆️ END OF SETTINGS ⬆️
+    // ==========================================
 
     let score = 0;
     let isCorrectSeal = false;
@@ -45,13 +56,17 @@
 
     async function updateLeaderboardUI() {
         const list = document.getElementById('leaderboard-list');
-        // Fix: Added missing slash and correct template literal syntax
-        const target = `https://dreamlo.com{PUBLIC_KEY}/json`;
-        const proxyUrl = MY_PROXY + encodeURIComponent(target);
+        
+        // FIX: Added /lb/ path and fixed string interpolation ${...}
+        const target = `http://dreamlo.com/lb/${PUBLIC_KEY}/json`;
+        
+        // Construct URL with Proxy
+        // If proxy is empty, it just fetches the target directly
+        const finalUrl = MY_PROXY ? (MY_PROXY + encodeURIComponent(target)) : target;
 
         try {
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error('Proxy error');
+            const response = await fetch(finalUrl);
+            // Note: Dreamlo often returns text/plain even for JSON
             const data = await response.json();
             
             const entries = data?.dreamlo?.leaderboard?.entry;
@@ -61,24 +76,33 @@
                 return;
             }
             
+            // Handle case where API returns single object instead of array
             const scoreArray = Array.isArray(entries) ? entries : [entries];
+            
+            // Sort by score (descending) and take top 5
+            scoreArray.sort((a, b) => parseInt(b.score) - parseInt(a.score));
+
             list.innerHTML = scoreArray.slice(0, 5).map(s => `
-                <div class="entry"><span>${s.name}</span><strong>${s.score}</strong></div>
+                <div class="entry">
+                    <span>${s.name}</span>
+                    <strong>${s.score}</strong>
+                </div>
             `).join('');
         } catch (err) {
             console.error("Board load failed:", err);
-            list.innerHTML = "Leaderboard error.";
+            list.innerHTML = "Leaderboard unavailable (CORS/Network error).";
         }
     }
 
     async function saveScore(name, finalScore) {
         const cleanName = encodeURIComponent(name.trim().substring(0, 10));
-        // Fix: Added missing slash and correct template literal syntax
-        const target = `https://dreamlo.com{PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
-        const proxyUrl = MY_PROXY + encodeURIComponent(target);
+        
+        // FIX: Added /lb/ path and fixed string interpolation ${...}
+        const target = `http://dreamlo.com/lb/${PRIVATE_KEY}/add/${cleanName}/${finalScore}`;
+        const finalUrl = MY_PROXY ? (MY_PROXY + encodeURIComponent(target)) : target;
         
         try {
-            await fetch(proxyUrl);
+            await fetch(finalUrl);
             setTimeout(updateLeaderboardUI, 1000);
         } catch (err) {
             console.error("Save failed:", err);
@@ -89,9 +113,16 @@
         gameActive = true;
         document.getElementById('feedback').innerText = "";
         isCorrectSeal = Math.random() < 0.5;
+        
+        // Expects folders named "seal" and "noseal" with images 1.jpg to 5.jpg
         const folder = isCorrectSeal ? "seal" : "noseal";
         const randomNum = Math.floor(Math.random() * 5) + 1;
-        document.getElementById('display-img').src = `${folder}/${randomNum}.jpg`;
+        
+        const img = document.getElementById('display-img');
+        img.src = `${folder}/${randomNum}.jpg`;
+        img.onerror = function() {
+            this.alt = "Image not found. Check folder names!";
+        };
     }
 
     function check(userChoice) {
@@ -116,10 +147,11 @@
                 score = 0;
                 document.getElementById('correct-count').innerText = 0;
                 nextRound();
-            }, 1000);
+            }, 500);
         }
     }
 
+    // Start the game
     updateLeaderboardUI();
     nextRound();
 </script>
