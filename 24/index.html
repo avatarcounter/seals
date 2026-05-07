@@ -1,29 +1,36 @@
 <!DOCTYPE html>
 <html>
-    <script>
+ <script>
   (function() {
-    // Check if they are already flagged as Ethan
-    if (localStorage.getItem('isBlocked') === 'true') {
-        renderBlockedPage();
-        return; // Stop execution here
+    // List of blocked names
+    const banned = ["ethan", "logan", "teilo"];
+    
+    // Check if they are already flagged
+    let blockedName = localStorage.getItem('isBlockedName');
+    
+    if (blockedName) {
+        renderBlockedPage(blockedName);
+        return;
     }
 
-    // Check if we have already asked them (any name or even an empty guest entry)
     if (!localStorage.getItem('userName')) {
         const name = prompt("Please enter your name to access the site:");
+        const cleanName = name ? name.toLowerCase().trim() : "";
         
-        if (name && name.toLowerCase().trim() === "ethan") {
-            localStorage.setItem('isBlocked', 'true');
-            renderBlockedPage();
+        if (banned.includes(cleanName)) {
+            // Save the specific name they used to block them forever
+            localStorage.setItem('isBlockedName', cleanName);
+            renderBlockedPage(cleanName);
         } else {
-            // Save 'guest' if they leave it blank or cancel 
-            // This ensures they are never prompted again
-            const identity = name ? name : "guest";
-            localStorage.setItem('userName', identity);
+            // Let them in and remember them so they aren't asked again
+            localStorage.setItem('userName', cleanName || "guest");
         }
     }
 
-    function renderBlockedPage() {
+    function renderBlockedPage(name) {
+        // Capitalise first letter for the display (e.g., "Logan Blocked")
+        const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+        
         document.documentElement.innerHTML = `
             <style>
                 body { 
@@ -36,10 +43,11 @@
                     overflow: hidden;
                 }
                 h1 {
-                    font-size: 10rem;
+                    font-size: 8vw;
                     font-family: sans-serif;
                     font-weight: bold;
                     text-transform: uppercase;
+                    text-align: center;
                     animation: flash 0.2s infinite;
                 }
                 @keyframes flash {
@@ -48,12 +56,13 @@
                     100% { color: red; }
                 }
             </style>
-            <h1>Ethan Blocked</h1>
+            <h1>\${displayName} Blocked</h1>
         `;
         window.stop();
     }
   })();
 </script>
+
 
 <head>
     <title>24</title>
