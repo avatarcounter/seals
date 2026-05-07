@@ -1,10 +1,31 @@
 (function() {
-    const banned = ["ethan", "logan", "teilo"];
     const blockedName = localStorage.getItem('isBlockedName');
     
-    // Function to kill the page and show the flashing screen
     function renderBlockedPage(name) {
-        const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+        // Default settings
+        let text = `${name} blocked lmao`;
+        let color1 = "red";
+        let color2 = "blue";
+
+        // Customise based on the name
+        switch(name.toLowerCase().trim()) {
+            case "logan":
+                text = "logan blocked lmao";
+                color1 = "green";
+                color2 = "red";
+                break;
+            case "ethan":
+                text = "ethan forbidden lmao";
+                color1 = "pink";
+                color2 = "yellow";
+                break;
+            case "teilo":
+                text = "teilo blocked, how is the car?";
+                color1 = "red";
+                color2 = "blue";
+                break;
+        }
+
         document.documentElement.innerHTML = `
             <style>
                 body { 
@@ -17,34 +38,33 @@
                     overflow: hidden !important;
                 }
                 h1 {
-                    font-size: 8vw;
+                    font-size: 6vw;
                     font-family: 'Impact', sans-serif;
                     text-transform: uppercase;
                     text-align: center;
-                    animation: flash 0.1s infinite;
+                    animation: flash 0.15s infinite;
                 }
                 @keyframes flash {
-                    0% { color: red; }
-                    50% { color: blue; }
-                    100% { color: red; }
+                    0% { color: ${color1}; }
+                    50% { color: ${color2}; }
+                    100% { color: ${color1}; }
                 }
             </style>
-            <h1>\${displayName} blocked lmao</h1>
+            <h1>${text}</h1>
         `;
         window.stop();
         throw new Error("Access Denied");
     }
 
-    // 1. If already blocked in this browser, show the screen immediately
     if (blockedName) {
         renderBlockedPage(blockedName);
         return;
     }
 
-    // 2. If name is unknown, ask for it
     if (!localStorage.getItem('userName')) {
         const name = prompt("Please enter your name to access the site:");
         const cleanName = name ? name.toLowerCase().trim() : "";
+        const banned = ["ethan", "logan", "teilo"];
         
         if (banned.includes(cleanName)) {
             localStorage.setItem('isBlockedName', cleanName);
@@ -52,7 +72,6 @@
         } else if (cleanName !== "") {
             localStorage.setItem('userName', cleanName);
         } else {
-            // Keep looping if they try to bypass the prompt
             window.location.reload();
         }
     }
