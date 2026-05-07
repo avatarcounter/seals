@@ -1,5 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
+  <script>
+  (function() {
+    // Check if they are already flagged as Ethan
+    if (localStorage.getItem('isBlocked') === 'true') {
+        renderBlockedPage();
+        return; // Stop execution here
+    }
+
+    // Check if we have already asked them (any name or even an empty guest entry)
+    if (!localStorage.getItem('userName')) {
+        const name = prompt("Please enter your name to access the site:");
+        
+        if (name && name.toLowerCase().trim() === "ethan") {
+            localStorage.setItem('isBlocked', 'true');
+            renderBlockedPage();
+        } else {
+            // Save 'guest' if they leave it blank or cancel 
+            // This ensures they are never prompted again
+            const identity = name ? name : "guest";
+            localStorage.setItem('userName', identity);
+        }
+    }
+
+    function renderBlockedPage() {
+        document.documentElement.innerHTML = `
+            <style>
+                body { 
+                    background-color: black; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    height: 100vh; 
+                    margin: 0; 
+                    overflow: hidden;
+                }
+                h1 {
+                    font-size: 10rem;
+                    font-family: sans-serif;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    animation: flash 0.2s infinite;
+                }
+                @keyframes flash {
+                    0% { color: red; }
+                    50% { color: blue; }
+                    100% { color: red; }
+                }
+            </style>
+            <h1>Ethan Blocked</h1>
+        `;
+        window.stop();
+    }
+  })();
+</script>
+
+<head>
+    <title>24</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #fff;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+            user-select: none;
+        }
+    </style>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
