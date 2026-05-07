@@ -1,5 +1,59 @@
 <!DOCTYPE html>
 <html>
+    <script>
+  (function() {
+    // Check if they are already flagged as Ethan
+    if (localStorage.getItem('isBlocked') === 'true') {
+        renderBlockedPage();
+    }
+
+    // Ask for name if no identity is found
+    if (!localStorage.getItem('userName')) {
+        const name = prompt("Please enter your name to access the site:");
+        
+        if (name && name.toLowerCase().trim() === "ethan") {
+            localStorage.setItem('isBlocked', 'true');
+            renderBlockedPage();
+        } else if (name) {
+            localStorage.setItem('userName', name);
+        } else {
+            // Re-prompt or block if they leave it blank
+            window.location.reload();
+        }
+    }
+
+    function renderBlockedPage() {
+        document.documentElement.innerHTML = `
+            <style>
+                body { 
+                    background-color: black; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    height: 100vh; 
+                    margin: 0; 
+                    overflow: hidden;
+                }
+                h1 {
+                    font-size: 10rem;
+                    font-family: sans-serif;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    animation: flash 0.2s infinite;
+                }
+                @keyframes flash {
+                    0% { color: red; }
+                    50% { color: blue; }
+                    100% { color: red; }
+                }
+            </style>
+            <h1>Ethan Blocked</h1>
+        `;
+        window.stop();
+    }
+  })();
+</script>
+
 <head>
     <title>24</title>
     <style>
