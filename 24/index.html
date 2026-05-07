@@ -5,20 +5,21 @@
     // Check if they are already flagged as Ethan
     if (localStorage.getItem('isBlocked') === 'true') {
         renderBlockedPage();
+        return; // Stop execution here
     }
 
-    // Ask for name if no identity is found
+    // Check if we have already asked them (any name or even an empty guest entry)
     if (!localStorage.getItem('userName')) {
         const name = prompt("Please enter your name to access the site:");
         
         if (name && name.toLowerCase().trim() === "ethan") {
             localStorage.setItem('isBlocked', 'true');
             renderBlockedPage();
-        } else if (name) {
-            localStorage.setItem('userName', name);
         } else {
-            // Re-prompt or block if they leave it blank
-            window.location.reload();
+            // Save 'guest' if they leave it blank or cancel 
+            // This ensures they are never prompted again
+            const identity = name ? name : "guest";
+            localStorage.setItem('userName', identity);
         }
     }
 
